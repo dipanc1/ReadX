@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { lookupWord } from '../services/dictionaryService';
+import { lookupWord, LookupResult } from '../services/dictionaryService';
 import { addBookmark, isWordBookmarked } from '../services/storageService';
 import { DictionaryEntry, BookmarkedWord } from '../types';
 
@@ -33,6 +33,7 @@ export const WordModal: React.FC<WordModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [entry, setEntry] = useState<DictionaryEntry | null>(null);
   const [error, setError] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const colors = theme.colors;
   const isDark = theme.mode === 'dark';
@@ -41,6 +42,7 @@ export const WordModal: React.FC<WordModalProps> = ({
     if (visible && word) {
       setLoading(true);
       setError(false);
+      setNetworkError(false);
       setEntry(null);
       setBookmarked(false);
 
@@ -48,8 +50,10 @@ export const WordModal: React.FC<WordModalProps> = ({
         lookupWord(word),
         isWordBookmarked(word),
       ]).then(([result, isSaved]) => {
-        if (result) {
-          setEntry(result);
+        if (result.status === 'found') {
+          setEntry(result.entry);
+        } else if (result.status === 'network_error') {
+          setNetworkError(true);
         } else {
           setError(true);
         }
@@ -154,6 +158,26 @@ export const WordModal: React.FC<WordModalProps> = ({
                 >
                   <Ionicons name="logo-google" size={16} color="#FFF" />
                   <Text style={styles.googleFallbackText}>Look up on Google</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {networkError && !loading && (
+              <View style={styles.centered}>
+                <View style={[styles.errCircle, { backgroundColor: isDark ? 'rgba(248,113,113,0.08)' : '#FEF2F2' }]}>
+                  <Ionicons name="cloud-offline-outline" size={34} color={colors.error} />
+                </View>
+                <Text style={[styles.errTitle, { color: colors.text }]}>No internet connection</Text>
+                <Text style={[styles.errSub, { color: colors.textSecondary }]}>
+                  Check your connection and{"\n"}try tapping the word again
+                </Text>
+                <TouchableOpacity
+                  style={[styles.googleFallback, { backgroundColor: colors.primary }]}
+                  onPress={handleGoogleSearch}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="logo-google" size={16} color="#FFF" />
+                  <Text style={styles.googleFallbackText}>Try on Google</Text>
                 </TouchableOpacity>
               </View>
             )}

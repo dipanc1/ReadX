@@ -147,7 +147,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
       border-radius: 4px; overflow: hidden;
     }
-    .page-wrapper canvas { display: block; width: 100%; height: auto; }
+    .page-wrapper canvas { display: block; }
 
     .text-layer {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -316,7 +316,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let totalPages = 0;
     let rendering = false;
     let isFullscreen = false;
-    const SCALE = 2.0;
+    const DPR = window.devicePixelRatio || 2;
     const renderedPages = new Set();
     const START_PAGE = ${startPage};
 
@@ -369,19 +369,34 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       renderedPages.add(pageNum);
 
       const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale: SCALE });
       const screenWidth = window.innerWidth - 12;
-      const displayScale = screenWidth / viewport.width;
+
+      // Get the base viewport at scale 1 to know the PDF page's natural size
+      const baseViewport = page.getViewport({ scale: 1 });
+
+      // Calculate the CSS display scale to fit page width to screen
+      const cssScale = screenWidth / baseViewport.width;
+
+      // Render scale = CSS display size × devicePixelRatio for pixel-perfect output
+      const renderScale = cssScale * DPR;
+      const renderViewport = page.getViewport({ scale: renderScale });
+
+      // For text positioning math, use a scale relative to renderViewport
+      const SCALE = renderScale;
+      const displayScale = screenWidth / renderViewport.width;
 
       const wrapper = document.createElement('div');
       wrapper.className = 'page-wrapper';
       wrapper.id = 'page-' + pageNum;
       wrapper.style.width = screenWidth + 'px';
-      wrapper.style.height = (viewport.height * displayScale) + 'px';
+      wrapper.style.height = (renderViewport.height * displayScale) + 'px';
 
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = renderViewport.width;
+      canvas.height = renderViewport.height;
+      // Set CSS size explicitly so canvas pixels map 1:1 to physical screen pixels
+      canvas.style.width = screenWidth + 'px';
+      canvas.style.height = (renderViewport.height * displayScale) + 'px';
       wrapper.appendChild(canvas);
 
       const textDiv = document.createElement('div');
@@ -403,7 +418,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       if (!inserted) container.appendChild(wrapper);
 
       const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
 
       // ── Build text layer with proportional word positioning ──
       const textContent = await page.getTextContent();
@@ -413,7 +428,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
         if (!item.str || !item.str.trim()) return;
         fullPageText += item.str + ' ';
 
-        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        const tx = pdfjsLib.Util.transform(renderViewport.transform, item.transform);
         const fontHeight = item.height * SCALE;
 
         // Use canvas measurement for proportional character widths
@@ -565,8 +580,16 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     function closeSearch() {
       searchOpen = false;
       document.getElementById('searchBar').classList.remove('show');
-      document.getElementById('toolbar').classList.remove('hidden');
-      document.getElementById('container').style.marginTop = '';
+      // Only show toolbar if NOT in fullscreen mode
+      if (!isFullscreen) {
+        document.getElementById('toolbar').classList.remove('hidden');
+      }
+      // Respect fullscreen state when restoring margin
+      if (isFullscreen) {
+        document.getElementById('container').style.marginTop = '8px';
+      } else {
+        document.getElementById('container').style.marginTop = '';
+      }
       document.getElementById('searchInput').value = '';
       document.getElementById('searchInfo').textContent = '';
       clearSearchHighlights();
@@ -717,6 +740,39 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     }
 
     // ─── Scroll detection with bidirectional lazy page rendering ───
+    const MAX_RENDERED_PAGES = 15; // Keep at most 15 pages in DOM to save memory
+
+    function unloadDistantPages() {
+      if (renderedPages.size <= MAX_RENDERED_PAGES) return;
+      const pagesToKeep = new Set();
+      for (let i = Math.max(1, currentPage - 5); i <= Math.min(currentPage + 5, totalPages); i++) {
+        pagesToKeep.add(i);
+      }
+
+      const toRemove = [];
+      renderedPages.forEach(p => {
+        if (!pagesToKeep.has(p)) toRemove.push(p);
+      });
+
+      // Sort by distance from current page, remove furthest first
+      toRemove.sort((a, b) => Math.abs(b - currentPage) - Math.abs(a - currentPage));
+      const removeCount = renderedPages.size - MAX_RENDERED_PAGES;
+
+      for (let i = 0; i < Math.min(removeCount, toRemove.length); i++) {
+        const pageNum = toRemove[i];
+        const wrapper = document.getElementById('page-' + pageNum);
+        if (wrapper) {
+          // Keep the wrapper div (preserves scroll position) but clear its heavy children
+          const w = wrapper.style.width;
+          const h = wrapper.style.height;
+          wrapper.innerHTML = '';
+          wrapper.style.width = w;
+          wrapper.style.height = h;
+        }
+        renderedPages.delete(pageNum);
+      }
+    }
+
     let scrollTimeout;
     window.addEventListener('scroll', () => {
       clearTimeout(scrollTimeout);
@@ -743,6 +799,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           for (let i = Math.max(1, currentPage - 3); i <= Math.min(currentPage + 3, totalPages); i++) {
             renderPage(i);
           }
+
+          // Free memory from distant pages
+          unloadDistantPages();
         }
       }, 150);
     });

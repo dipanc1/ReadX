@@ -81,22 +81,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       ]).start();
     }, 550);
 
-    // Phase 4: Tagline fades in
-    setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(tagOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(tagSlide, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 850);
-
     // Phase 5: Loading dots
     setTimeout(() => {
       Animated.timing(dotsOpacity, {
@@ -167,17 +151,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <Text style={styles.brandName}>
           Read<Text style={styles.brandAccent}>X</Text>
         </Text>
-      </Animated.View>
-
-      {/* Tagline */}
-      <Animated.View
-        style={{
-          opacity: tagOpacity,
-          transform: [{ translateY: tagSlide }],
-          marginTop: 10,
-        }}
-      >
-        <Text style={styles.tagline}>Tap. Read. Learn.</Text>
       </Animated.View>
 
       {/* Loading dots */}
@@ -283,14 +256,6 @@ const styles = StyleSheet.create({
   brandAccent: {
     color: '#818CF8',
     fontWeight: '900',
-  },
-
-  tagline: {
-    fontSize: 15,
-    color: '#64748B',
-    fontWeight: '600',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
   },
 
   dotsRow: {

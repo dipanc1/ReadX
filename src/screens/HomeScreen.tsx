@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../context/ThemeContext';
 import { getSavedPdfs, savePdf, deletePdf } from '../services/storageService';
 import { PdfDocument } from '../types';
@@ -51,16 +52,42 @@ export const HomeScreen: React.FC = () => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        const pdf: PdfDocument = {
-          id: Date.now().toString(),
-          name: file.name,
-          uri: file.uri,
-          addedAt: Date.now(),
-        };
 
-        await savePdf(pdf);
-        await loadPdfs();
-        navigation.navigate('PdfViewer', { pdf });
+        // Copy PDF to permanent documents directory so it survives cache eviction
+        const pdfDir = FileSystem.documentDirectory + 'pdfs/';
+        const dirInfo = await FileSystem.getInfoAsync(pdfDir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(pdfDir, { intermediates: true });
+        }
+
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const permanentUri = pdfDir + safeFileName;
+
+        // Check if this file already exists (re-picking same PDF)
+        const existing = pdfs.find(
+          (p) => p.name === file.name
+        );
+
+        if (existing) {
+          // Update existing entry — copy fresh file and navigate
+          await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
+          const updatedPdf = { ...existing, uri: permanentUri, lastReadAt: Date.now() };
+          await savePdf(updatedPdf);
+          await loadPdfs();
+          navigation.navigate('PdfViewer', { pdf: updatedPdf });
+        } else {
+          await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
+          const pdf: PdfDocument = {
+            id: Date.now().toString(),
+            name: file.name,
+            uri: permanentUri,
+            addedAt: Date.now(),
+          };
+
+          await savePdf(pdf);
+          await loadPdfs();
+          navigation.navigate('PdfViewer', { pdf });
+        }
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to pick PDF file');

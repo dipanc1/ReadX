@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Text,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -40,6 +41,23 @@ export const PdfViewerScreen: React.FC = () => {
   useEffect(() => {
     loadPdf();
   }, []);
+
+  // Handle Android hardware back button: exit fullscreen first
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isFullscreen) {
+        // Tell WebView to exit fullscreen
+        webViewRef.current?.injectJavaScript(
+          `if (typeof toggleFullscreen === 'function') toggleFullscreen(); true;`
+        );
+        setIsFullscreen(false);
+        navigation.setOptions({ headerShown: true });
+        return true; // prevent default back navigation
+      }
+      return false; // let default back navigation happen
+    });
+    return () => handler.remove();
+  }, [isFullscreen]);
 
   const loadPdf = async () => {
     try {

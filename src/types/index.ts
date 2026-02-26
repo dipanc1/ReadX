@@ -78,4 +78,9 @@ export interface WebViewPageMessage {
   totalPages: number;
 }
 
-export type WebViewMessage = WebViewWordMessage | WebViewPageMessage;
+export interface WebViewFullscreenMessage {
+  type: 'fullscreenChanged';
+  isFullscreen: boolean;
+}
+
+export type WebViewMessage = WebViewWordMessage | WebViewPageMessage | WebViewFullscreenMessage;

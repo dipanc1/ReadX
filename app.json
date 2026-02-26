@@ -41,9 +41,6 @@
         "projectId": "45ea10e1-c018-4b2b-a7cb-5a2ec24db577"
       }
     },
-    "owner": "dipanc1",
-    "plugins": [
-      "expo-build-properties"
-    ]
+    "owner": "dipanc1"
   }
 }
