@@ -316,9 +316,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let totalPages = 0;
     let rendering = false;
     let isFullscreen = false;
-    // Super-sample: render 1.5× beyond device pixels, minimum 4× for crisp text
-    const RAW_DPR = window.devicePixelRatio || 2;
-    const DPR = Math.max(RAW_DPR * 1.5, 4);
+    // Render at native DPR with a floor of 3× for crisp text on all devices
+    const DPR = Math.max(window.devicePixelRatio || 2, 3);
     const renderedPages = new Set();
     const START_PAGE = ${startPage};
 
@@ -352,6 +351,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
         for (let i = renderStart; i <= renderEnd; i++) {
           await renderPage(i);
+          // Yield to let browser paint between pages so UI stays responsive
+          await new Promise(r => setTimeout(r, 0));
         }
 
         // Scroll to start page after rendering
@@ -420,12 +421,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       if (!inserted) container.appendChild(wrapper);
 
       const ctx = canvas.getContext('2d', { alpha: false });
+      // Fill white immediately so the canvas never flashes black while rendering
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       await page.render({
         canvasContext: ctx,
         viewport: renderViewport,
-        intent: 'print',
       }).promise;
 
       // ── Build text layer with proportional word positioning ──
@@ -782,9 +785,10 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     }
 
     let scrollTimeout;
+    let scrollRenderAbort = 0; // incremented to cancel stale scroll renders
     window.addEventListener('scroll', () => {
       clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
+      scrollTimeout = setTimeout(async () => {
         const pages = document.querySelectorAll('.page-wrapper');
         let closest = 1;
         let closestDist = Infinity;
@@ -803,15 +807,20 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           updatePageInfo();
           sendPageChange();
 
-          // Render pages in BOTH directions for smooth scrolling
+          // Cancel any previous scroll-render batch
+          const thisRender = ++scrollRenderAbort;
+
+          // Render pages in BOTH directions, yielding between each
           for (let i = Math.max(1, currentPage - 3); i <= Math.min(currentPage + 3, totalPages); i++) {
-            renderPage(i);
+            if (scrollRenderAbort !== thisRender) break; // user scrolled again, abandon
+            await renderPage(i);
+            await new Promise(r => setTimeout(r, 0)); // yield to browser
           }
 
           // Free memory from distant pages
           unloadDistantPages();
         }
-      }, 150);
+      }, 100);
     });
 
     init();
