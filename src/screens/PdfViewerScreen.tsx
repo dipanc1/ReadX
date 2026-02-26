@@ -35,6 +35,7 @@ export const PdfViewerScreen: React.FC = () => {
   // Word modal state
   const [selectedWord, setSelectedWord] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     loadPdf();
@@ -73,6 +74,7 @@ export const PdfViewerScreen: React.FC = () => {
       } else if (message.type === 'pageChanged') {
         updatePdfProgress(pdf.id, message.page, message.totalPages);
       } else if (message.type === 'fullscreenChanged') {
+        setIsFullscreen(message.isFullscreen);
         navigation.setOptions({
           headerShown: !message.isFullscreen,
         });
@@ -106,7 +108,12 @@ export const PdfViewerScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#0F172A"
+        hidden={isFullscreen}
+        translucent={isFullscreen}
+      />
 
       {htmlContent && (
         <WebView

@@ -119,7 +119,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
     /* ─── Floating restore button ─── */
     #restoreBtn {
-      position: fixed; top: 10px; right: 10px;
+      position: fixed; top: 48px; right: 10px;
       width: 40px; height: 40px;
       background: rgba(30, 41, 59, 0.92);
       border: 1px solid rgba(99, 102, 241, 0.25);
