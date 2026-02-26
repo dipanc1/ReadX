@@ -7,7 +7,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { updatePdfProgress } from '../services/storageService';
@@ -44,12 +44,12 @@ export const PdfViewerScreen: React.FC = () => {
       setError(null);
 
       // Read PDF file as base64
-      const base64 = await readAsStringAsync(pdf.uri, {
-        encoding: EncodingType.Base64,
+      const base64 = await FileSystem.readAsStringAsync(pdf.uri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Generate HTML with embedded PDF data
-      const html = getPdfViewerHtml(base64);
+      // Generate HTML with embedded PDF data, resuming from last page
+      const html = getPdfViewerHtml(base64, pdf.lastPage || 1);
       setHtmlContent(html);
     } catch (err: any) {
       setError(err?.message || 'Failed to load PDF');
@@ -69,7 +69,7 @@ export const PdfViewerScreen: React.FC = () => {
           setModalVisible(true);
         }
       } else if (message.type === 'pageChanged') {
-        updatePdfProgress(pdf.id, message.page);
+        updatePdfProgress(pdf.id, message.page, message.totalPages);
       }
     } catch {
       // Invalid message, ignore
@@ -100,7 +100,7 @@ export const PdfViewerScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#16213e" />
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
       {htmlContent && (
         <WebView

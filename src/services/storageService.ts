@@ -28,13 +28,17 @@ export async function savePdf(pdf: PdfDocument): Promise<void> {
 
 export async function updatePdfProgress(
   id: string,
-  page: number
+  page: number,
+  totalPages?: number
 ): Promise<void> {
   const pdfs = await getSavedPdfs();
   const idx = pdfs.findIndex((p) => p.id === id);
   if (idx >= 0) {
     pdfs[idx].lastReadAt = Date.now();
     pdfs[idx].lastPage = page;
+    if (totalPages) {
+      pdfs[idx].totalPages = totalPages;
+    }
     await AsyncStorage.setItem(PDFS_KEY, JSON.stringify(pdfs));
   }
 }

@@ -36,15 +36,21 @@ const HomeTabs: React.FC = () => {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 64,
+          paddingBottom: 10,
           paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
+          letterSpacing: 0.3,
         },
       }}
     >
@@ -52,6 +58,7 @@ const HomeTabs: React.FC = () => {
         name="Home"
         component={HomeScreen}
         options={{
+          tabBarLabel: 'Library',
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 22, color }}>📚</Text>
           ),
@@ -61,6 +68,7 @@ const HomeTabs: React.FC = () => {
         name="Bookmarks"
         component={BookmarksScreen}
         options={{
+          tabBarLabel: 'Vocabulary',
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 22, color }}>⭐</Text>
           ),
@@ -96,6 +104,7 @@ export const AppNavigator: React.FC = () => {
           options={({ route }) => ({
             title: route.params.pdf.name.replace('.pdf', ''),
             headerBackTitle: 'Back',
+            headerTitleStyle: { fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
           })}
         />
       </Stack.Navigator>

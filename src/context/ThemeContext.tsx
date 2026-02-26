@@ -7,17 +7,17 @@ const THEME_KEY = '@readx_theme';
 const lightTheme: AppTheme = {
   mode: 'light',
   colors: {
-    background: '#F5F5F5',
+    background: '#F8FAFC',
     surface: '#FFFFFF',
     card: '#FFFFFF',
-    text: '#1A1A2E',
-    textSecondary: '#6B7280',
-    primary: '#4F46E5',
+    text: '#0F172A',
+    textSecondary: '#64748B',
+    primary: '#6366F1',
     primaryLight: '#EEF2FF',
-    border: '#E5E7EB',
+    border: '#E2E8F0',
     error: '#EF4444',
     accent: '#F59E0B',
-    modalOverlay: 'rgba(0, 0, 0, 0.5)',
+    modalOverlay: 'rgba(15, 23, 42, 0.5)',
   },
 };
 
@@ -30,11 +30,11 @@ const darkTheme: AppTheme = {
     text: '#F1F5F9',
     textSecondary: '#94A3B8',
     primary: '#818CF8',
-    primaryLight: '#1E1B4B',
+    primaryLight: 'rgba(129, 140, 248, 0.12)',
     border: '#334155',
     error: '#F87171',
     accent: '#FBBF24',
-    modalOverlay: 'rgba(0, 0, 0, 0.7)',
+    modalOverlay: 'rgba(0, 0, 0, 0.75)',
   },
 };
 

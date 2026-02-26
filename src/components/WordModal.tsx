@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { lookupWord } from '../services/dictionaryService';
@@ -77,6 +78,7 @@ export const WordModal: React.FC<WordModalProps> = ({
   };
 
   const colors = theme.colors;
+  const cleanWord = word?.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
 
   return (
     <Modal
@@ -86,26 +88,40 @@ export const WordModal: React.FC<WordModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={[styles.overlay, { backgroundColor: colors.modalOverlay }]}>
+        <TouchableOpacity style={styles.overlayTouch} onPress={onClose} activeOpacity={1} />
         <View
           style={[
             styles.container,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              shadowColor: theme.mode === 'dark' ? '#000' : '#6366F1',
+            },
           ]}
         >
+          {/* Drag handle */}
+          <View style={styles.handleBar}>
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          </View>
+
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View style={styles.headerLeft}>
               <Text style={[styles.word, { color: colors.text }]}>
-                {word?.replace(/[^a-zA-Z'-]/g, '').toLowerCase()}
+                {cleanWord}
               </Text>
               {entry?.phonetics?.find((p) => p.text) && (
-                <Text style={[styles.phonetic, { color: colors.textSecondary }]}>
+                <Text style={[styles.phonetic, { color: colors.primary }]}>
                   {entry.phonetics.find((p) => p.text)?.text}
                 </Text>
               )}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={[styles.closeBtnText, { color: colors.textSecondary }]}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeBtn, { backgroundColor: colors.primaryLight }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.closeBtnText, { color: colors.primary }]}>
                 ✕
               </Text>
             </TouchableOpacity>
@@ -124,15 +140,21 @@ export const WordModal: React.FC<WordModalProps> = ({
 
             {error && !loading && (
               <View style={styles.center}>
-                <Text style={[styles.errorEmoji]}>📖</Text>
+                <View style={[styles.errorCircle, { backgroundColor: colors.primaryLight }]}>
+                  <Text style={styles.errorEmoji}>📖</Text>
+                </View>
+                <Text style={[styles.errorTitle, { color: colors.text }]}>
+                  Word not found
+                </Text>
                 <Text style={[styles.errorText, { color: colors.textSecondary }]}>
-                  No definition found for "{word}"
+                  No definition available for "{cleanWord}"
                 </Text>
                 <TouchableOpacity
                   style={[styles.googleBtn, { backgroundColor: colors.primary }]}
                   onPress={handleGoogleSearch}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.googleBtnText}>Search on Google</Text>
+                  <Text style={styles.googleBtnText}>🔍  Search on Google</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -154,37 +176,43 @@ export const WordModal: React.FC<WordModalProps> = ({
 
                     {meaning.definitions.slice(0, 3).map((def, dIdx) => (
                       <View key={dIdx} style={styles.definitionBlock}>
-                        <Text style={[styles.defNumber, { color: colors.primary }]}>
-                          {dIdx + 1}.
-                        </Text>
+                        <View style={[styles.defDot, { backgroundColor: colors.primary }]} />
                         <View style={styles.defContent}>
                           <Text style={[styles.defText, { color: colors.text }]}>
                             {def.definition}
                           </Text>
                           {def.example && (
-                            <Text
-                              style={[
-                                styles.example,
-                                { color: colors.textSecondary },
-                              ]}
-                            >
-                              "{def.example}"
-                            </Text>
+                            <View style={[styles.exampleBox, { backgroundColor: colors.primaryLight }]}>
+                              <Text
+                                style={[
+                                  styles.example,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                "{def.example}"
+                              </Text>
+                            </View>
                           )}
                         </View>
                       </View>
                     ))}
 
                     {meaning.synonyms.length > 0 && (
-                      <View style={styles.synonymBlock}>
+                      <View style={[styles.synonymBlock, { backgroundColor: colors.primaryLight }]}>
                         <Text
                           style={[styles.synLabel, { color: colors.textSecondary }]}
                         >
-                          Synonyms:
+                          Synonyms
                         </Text>
-                        <Text style={[styles.synWords, { color: colors.accent }]}>
-                          {meaning.synonyms.slice(0, 5).join(', ')}
-                        </Text>
+                        <View style={styles.synChips}>
+                          {meaning.synonyms.slice(0, 5).map((syn, sIdx) => (
+                            <View key={sIdx} style={[styles.synChip, { borderColor: colors.border }]}>
+                              <Text style={[styles.synChipText, { color: colors.primary }]}>
+                                {syn}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       </View>
                     )}
                   </View>
@@ -199,14 +227,17 @@ export const WordModal: React.FC<WordModalProps> = ({
               <TouchableOpacity
                 style={[
                   styles.actionBtn,
+                  styles.saveBtn,
                   {
                     backgroundColor: bookmarked
                       ? colors.primaryLight
                       : colors.primary,
+                    shadowColor: bookmarked ? 'transparent' : colors.primary,
                   },
                 ]}
                 onPress={handleBookmark}
                 disabled={bookmarked}
+                activeOpacity={0.8}
               >
                 <Text
                   style={[
@@ -214,16 +245,21 @@ export const WordModal: React.FC<WordModalProps> = ({
                     { color: bookmarked ? colors.primary : '#FFFFFF' },
                   ]}
                 >
-                  {bookmarked ? '✓ Saved' : '★ Save Word'}
+                  {bookmarked ? '✓  Saved' : '★  Save Word'}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+                style={[
+                  styles.actionBtn,
+                  styles.googleActionBtn,
+                  { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+                ]}
                 onPress={handleGoogleSearch}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.actionBtnText, { color: colors.text }]}>
-                  🔍 Google
+                  🔍
                 </Text>
               </TouchableOpacity>
             </View>
@@ -239,140 +275,209 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  overlayTouch: {
+    flex: 1,
+  },
   container: {
-    maxHeight: '75%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    maxHeight: '78%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderWidth: 1,
     borderBottomWidth: 0,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  handleBar: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.5,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
     borderBottomWidth: 1,
   },
   headerLeft: {
     flex: 1,
   },
   word: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   phonetic: {
     fontSize: 14,
-    marginTop: 2,
+    marginTop: 4,
+    fontWeight: '500',
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   content: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   center: {
     alignItems: 'center',
     paddingVertical: 32,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: 14,
     fontSize: 15,
+    fontWeight: '500',
   },
-  errorEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 15,
-    textAlign: 'center',
+  errorCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
+  errorEmoji: {
+    fontSize: 32,
+  },
+  errorTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   googleBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   googleBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   meaningBlock: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   posTag: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   posText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'capitalize',
+    letterSpacing: 0.3,
   },
   definitionBlock: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginBottom: 14,
+    alignItems: 'flex-start',
   },
-  defNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginRight: 8,
-    marginTop: 1,
+  defDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+    marginRight: 12,
   },
   defContent: {
     flex: 1,
   },
   defText: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 23,
+    letterSpacing: 0.1,
+  },
+  exampleBox: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 10,
   },
   example: {
     fontSize: 13,
     fontStyle: 'italic',
-    marginTop: 4,
     lineHeight: 19,
   },
   synonymBlock: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
   },
   synLabel: {
-    fontSize: 13,
-    marginRight: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
-  synWords: {
+  synChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  synChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  synChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    gap: 10,
     borderTopWidth: 1,
+    paddingBottom: 28,
   },
   actionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
+  },
+  saveBtn: {
+    flex: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  googleActionBtn: {
+    width: 52,
   },
   actionBtnText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

@@ -6,6 +6,7 @@ export interface PdfDocument {
   addedAt: number; // timestamp
   lastReadAt?: number;
   lastPage?: number;
+  totalPages?: number;
 }
 
 // ─── Dictionary API Response ─────────────────────────────────

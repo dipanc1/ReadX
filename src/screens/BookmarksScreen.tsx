@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Linking,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
@@ -54,58 +55,77 @@ export const BookmarksScreen: React.FC = () => {
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            shadowColor: theme.mode === 'dark' ? '#000' : '#6366F1',
+          },
+        ]}
         onLongPress={() => handleDelete(item)}
         onPress={() => handleGoogleSearch(item.word)}
         activeOpacity={0.7}
       >
-        <View style={styles.cardHeader}>
-          <Text style={[styles.word, { color: colors.text }]}>{item.word}</Text>
-          {item.phonetic && (
-            <Text style={[styles.phonetic, { color: colors.textSecondary }]}>
-              {item.phonetic}
+        {/* Accent strip */}
+        <View style={[styles.accentStrip, { backgroundColor: colors.primary }]} />
+
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View style={styles.wordRow}>
+              <Text style={[styles.word, { color: colors.text }]}>{item.word}</Text>
+              {item.phonetic && (
+                <Text style={[styles.phonetic, { color: colors.textSecondary }]}>
+                  {item.phonetic}
+                </Text>
+              )}
+            </View>
+            <View style={[styles.googleIcon, { backgroundColor: colors.primaryLight }]}>
+              <Text style={styles.googleIconText}>🔍</Text>
+            </View>
+          </View>
+
+          {firstMeaning && (
+            <View
+              style={[styles.posTag, { backgroundColor: colors.primaryLight }]}
+            >
+              <Text style={[styles.posText, { color: colors.primary }]}>
+                {firstMeaning.partOfSpeech}
+              </Text>
+            </View>
+          )}
+
+          {firstDef && (
+            <Text
+              style={[styles.definition, { color: colors.text }]}
+              numberOfLines={3}
+            >
+              {firstDef.definition}
             </Text>
           )}
-        </View>
 
-        {firstMeaning && (
-          <View
-            style={[styles.posTag, { backgroundColor: colors.primaryLight }]}
-          >
-            <Text style={[styles.posText, { color: colors.primary }]}>
-              {firstMeaning.partOfSpeech}
+          {firstDef?.example && (
+            <View style={[styles.exampleContainer, { backgroundColor: colors.primaryLight }]}>
+              <Text
+                style={[styles.example, { color: colors.textSecondary }]}
+                numberOfLines={2}
+              >
+                "{firstDef.example}"
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.cardFooter}>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              {item.pdfName ? `📄 ${item.pdfName.replace('.pdf', '')}` : ''}
+            </Text>
+            <Text style={[styles.footerDate, { color: colors.textSecondary }]}>
+              {new Date(item.savedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              })}
             </Text>
           </View>
-        )}
-
-        {firstDef && (
-          <Text
-            style={[styles.definition, { color: colors.text }]}
-            numberOfLines={3}
-          >
-            {firstDef.definition}
-          </Text>
-        )}
-
-        {firstDef?.example && (
-          <Text
-            style={[styles.example, { color: colors.textSecondary }]}
-            numberOfLines={2}
-          >
-            "{firstDef.example}"
-          </Text>
-        )}
-
-        <View style={styles.cardFooter}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            {item.pdfName ? `From: ${item.pdfName}` : ''}
-          </Text>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            {new Date(item.savedAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            })}
-          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -113,12 +133,24 @@ export const BookmarksScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Saved Words</Text>
-        <Text style={[styles.count, { color: colors.textSecondary }]}>
-          {bookmarks.length} {bookmarks.length === 1 ? 'word' : 'words'}
-        </Text>
+        <View>
+          <Text style={[styles.brandLabel, { color: colors.primary }]}>VOCABULARY</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Saved Words</Text>
+        </View>
+        {bookmarks.length > 0 && (
+          <View style={[styles.countBadge, { backgroundColor: colors.primaryLight }]}>
+            <Text style={[styles.countText, { color: colors.primary }]}>
+              {bookmarks.length}
+            </Text>
+          </View>
+        )}
       </View>
 
       {bookmarks.length > 0 ? (
@@ -131,12 +163,14 @@ export const BookmarksScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>⭐</Text>
+          <View style={[styles.emptyIconCircle, { backgroundColor: colors.primaryLight }]}>
+            <Text style={styles.emptyEmoji}>⭐</Text>
+          </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            No saved words
+            Build your vocabulary
           </Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            When you find an interesting word while reading, save it here for later
+            Tap any word while reading to see its meaning,{'\n'}then save it here for future reference.
           </Text>
         </View>
       )}
@@ -149,90 +183,156 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingTop: 56,
     paddingBottom: 16,
   },
+  brandLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 3,
+    marginBottom: 4,
+  },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
-  count: {
-    fontSize: 14,
-    marginTop: 2,
+  countBadge: {
+    minWidth: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  countText: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   list: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 100,
   },
   card: {
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 12,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  accentStrip: {
+    width: 4,
+  },
+  cardContent: {
+    flex: 1,
+    padding: 16,
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  wordRow: {
+    flex: 1,
   },
   word: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   phonetic: {
     fontSize: 13,
+    marginTop: 2,
+  },
+  googleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  googleIconText: {
+    fontSize: 14,
   },
   posTag: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5,
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   posText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
   definition: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
+  },
+  exampleContainer: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 10,
   },
   example: {
     fontSize: 13,
     fontStyle: 'italic',
-    marginTop: 6,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(148, 163, 184, 0.2)',
   },
   footerText: {
     fontSize: 11,
+    fontWeight: '500',
+  },
+  footerDate: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 48,
+  },
+  emptyIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 44,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontWeight: '800',
+    marginBottom: 10,
+    letterSpacing: -0.3,
   },
   emptyDesc: {
     fontSize: 14,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });
