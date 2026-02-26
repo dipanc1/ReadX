@@ -316,7 +316,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let totalPages = 0;
     let rendering = false;
     let isFullscreen = false;
-    const DPR = window.devicePixelRatio || 2;
+    // Super-sample: render 1.5× beyond device pixels, minimum 4× for crisp text
+    const RAW_DPR = window.devicePixelRatio || 2;
+    const DPR = Math.max(RAW_DPR * 1.5, 4);
     const renderedPages = new Set();
     const START_PAGE = ${startPage};
 
@@ -417,8 +419,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       }
       if (!inserted) container.appendChild(wrapper);
 
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      await page.render({
+        canvasContext: ctx,
+        viewport: renderViewport,
+        intent: 'print',
+      }).promise;
 
       // ── Build text layer with proportional word positioning ──
       const textContent = await page.getTextContent();
