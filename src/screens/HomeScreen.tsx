@@ -161,14 +161,18 @@ export const HomeScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoRow}>
-            <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
-              <Ionicons name="book" size={16} color="#FFF" />
+            <View style={[styles.logoMark, { backgroundColor: isDark ? 'rgba(129,140,248,0.15)' : '#EEF0FF' }]}>
+              <Ionicons name="reader" size={22} color={colors.primary} />
             </View>
-            <Text style={[styles.brandName, { color: colors.text }]}>ReadX</Text>
+            <View>
+              <Text style={[styles.brandName, { color: colors.text }]}>
+                Read<Text style={{ color: colors.primary }}>X</Text>
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                Your smart reading companion
+              </Text>
+            </View>
           </View>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Tap any word to learn
-          </Text>
         </View>
         <TouchableOpacity
           onPress={toggleTheme}
@@ -249,14 +253,14 @@ const styles = StyleSheet.create({
   headerLeft: {},
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   logoMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.8 },
-  subtitle: { fontSize: 13, marginLeft: 1, letterSpacing: 0.1 },
+  brandName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { fontSize: 11, letterSpacing: 0.2, marginTop: 1 },
 
   themeBtn: {
     width: 42,

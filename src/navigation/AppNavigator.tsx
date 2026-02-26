@@ -109,7 +109,17 @@ export const AppNavigator: React.FC = () => {
           options={({ route }) => ({
             title: route.params.pdf.name.replace('.pdf', ''),
             headerBackTitle: 'Back',
-            headerTitleStyle: { fontWeight: '700', fontSize: 16, letterSpacing: 0.2 },
+            headerStyle: {
+              backgroundColor: '#0F172A',
+            },
+            headerTintColor: '#E2E8F0',
+            headerTitleStyle: {
+              fontWeight: '700',
+              fontSize: 16,
+              letterSpacing: 0.2,
+              color: '#E2E8F0',
+            },
+            headerShadowVisible: false,
           })}
         />
       </Stack.Navigator>

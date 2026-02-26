@@ -105,11 +105,17 @@ export const WordModal: React.FC<WordModalProps> = ({
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
             <View style={styles.headerLeft}>
-              <Text style={[styles.word, { color: colors.text }]}>{cleanWord}</Text>
+              <View style={styles.wordRow}>
+                <View style={[styles.wordAccent, { backgroundColor: colors.primary }]} />
+                <Text style={[styles.word, { color: colors.text }]}>{cleanWord}</Text>
+              </View>
               {entry?.phonetics?.find((p) => p.text) && (
-                <Text style={[styles.phonetic, { color: colors.primary }]}>
-                  {entry.phonetics.find((p) => p.text)?.text}
-                </Text>
+                <View style={[styles.phoneticChip, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+                  <Ionicons name="volume-medium-outline" size={13} color={colors.primary} />
+                  <Text style={[styles.phonetic, { color: colors.primary }]}>
+                    {entry.phonetics.find((p) => p.text)?.text}
+                  </Text>
+                </View>
               )}
             </View>
             <TouchableOpacity
@@ -135,19 +141,19 @@ export const WordModal: React.FC<WordModalProps> = ({
             {error && !loading && (
               <View style={styles.centered}>
                 <View style={[styles.errCircle, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
-                  <Ionicons name="book-outline" size={32} color={colors.primary} />
+                  <Ionicons name="search-outline" size={34} color={colors.primary} />
                 </View>
-                <Text style={[styles.errTitle, { color: colors.text }]}>Not found</Text>
+                <Text style={[styles.errTitle, { color: colors.text }]}>Word not found</Text>
                 <Text style={[styles.errSub, { color: colors.textSecondary }]}>
-                  No definition for "{cleanWord}"
+                  We couldn't find a definition{"\n"}for "{cleanWord}" in the dictionary
                 </Text>
                 <TouchableOpacity
                   style={[styles.googleFallback, { backgroundColor: colors.primary }]}
                   onPress={handleGoogleSearch}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name="search" size={16} color="#FFF" />
-                  <Text style={styles.googleFallbackText}>Search Google</Text>
+                  <Ionicons name="logo-google" size={16} color="#FFF" />
+                  <Text style={styles.googleFallbackText}>Look up on Google</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -206,7 +212,9 @@ export const WordModal: React.FC<WordModalProps> = ({
                 style={[
                   styles.mainAction,
                   {
-                    backgroundColor: bookmarked ? (isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF') : colors.primary,
+                    backgroundColor: bookmarked
+                      ? (isDark ? 'rgba(52,211,153,0.12)' : '#ECFDF5')
+                      : colors.primary,
                   },
                 ]}
                 onPress={handleBookmark}
@@ -216,10 +224,10 @@ export const WordModal: React.FC<WordModalProps> = ({
                 <Ionicons
                   name={bookmarked ? 'checkmark-circle' : 'bookmark-outline'}
                   size={18}
-                  color={bookmarked ? colors.primary : '#FFF'}
+                  color={bookmarked ? '#34D399' : '#FFF'}
                 />
-                <Text style={[styles.mainActionText, { color: bookmarked ? colors.primary : '#FFF' }]}>
-                  {bookmarked ? 'Saved' : 'Save'}
+                <Text style={[styles.mainActionText, { color: bookmarked ? '#34D399' : '#FFF' }]}>
+                  {bookmarked ? 'Saved to Vocabulary' : 'Save Word'}
                 </Text>
               </TouchableOpacity>
 
@@ -228,7 +236,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                 onPress={handleGoogleSearch}
                 activeOpacity={0.6}
               >
-                <Ionicons name="search" size={18} color={colors.text} />
+                <Ionicons name="logo-google" size={16} color={colors.text} />
               </TouchableOpacity>
             </View>
           )}
@@ -264,8 +272,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerLeft: { flex: 1 },
-  word: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  phonetic: { fontSize: 14, marginTop: 3, fontWeight: '500' },
+  wordRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  wordAccent: { width: 4, height: 28, borderRadius: 2 },
+  word: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  phoneticChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  phonetic: { fontSize: 13, fontWeight: '600' },
   closeBtn: {
     width: 34,
     height: 34,
