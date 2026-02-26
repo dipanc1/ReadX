@@ -7,8 +7,9 @@ import {
   StyleSheet,
   Alert,
   StatusBar,
-  Animated,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
@@ -27,6 +28,7 @@ export const HomeScreen: React.FC = () => {
   const [pdfs, setPdfs] = useState<PdfDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const colors = theme.colors;
+  const isDark = theme.mode === 'dark';
 
   useFocusEffect(
     useCallback(() => {
@@ -83,11 +85,13 @@ export const HomeScreen: React.FC = () => {
 
   const formatDate = (ts: number) => {
     const d = new Date(ts);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const getProgress = (pdf: PdfDocument) => {
@@ -97,47 +101,51 @@ export const HomeScreen: React.FC = () => {
     return 0;
   };
 
-  const renderPdfItem = ({ item, index }: { item: PdfDocument; index: number }) => {
+  const renderPdfItem = ({ item }: { item: PdfDocument }) => {
     const progress = getProgress(item);
+    const hasProgress = progress > 0 && progress < 100;
     return (
       <TouchableOpacity
         style={[
           styles.pdfCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-            shadowColor: theme.mode === 'dark' ? '#000' : '#6366F1',
-          },
+          { backgroundColor: colors.card },
         ]}
         onPress={() => navigation.navigate('PdfViewer', { pdf: item })}
         onLongPress={() => handleDelete(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.65}
       >
-        <View style={[styles.pdfIconContainer, { backgroundColor: colors.primaryLight }]}>
-          <Text style={styles.pdfIconText}>📄</Text>
+        {/* Left icon */}
+        <View style={[styles.pdfIconWrap, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+          <Ionicons name="document-text" size={24} color={colors.primary} />
         </View>
+
+        {/* Info */}
         <View style={styles.pdfInfo}>
           <Text style={[styles.pdfName, { color: colors.text }]} numberOfLines={1}>
             {item.name.replace('.pdf', '')}
           </Text>
-          <Text style={[styles.pdfMeta, { color: colors.textSecondary }]}>
-            {formatDate(item.addedAt)}
-            {item.lastPage ? `  •  Page ${item.lastPage}` : ''}
-          </Text>
-          {progress > 0 && (
-            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+          <View style={styles.pdfMetaRow}>
+            <Text style={[styles.pdfMeta, { color: colors.textSecondary }]}>
+              {formatDate(item.addedAt)}
+            </Text>
+            {item.lastPage ? (
+              <View style={styles.pageBadge}>
+                <Ionicons name="bookmark" size={10} color={colors.primary} />
+                <Text style={[styles.pageText, { color: colors.primary }]}> p.{item.lastPage}</Text>
+              </View>
+            ) : null}
+          </View>
+          {hasProgress && (
+            <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F0FF' }]}>
               <View
-                style={[
-                  styles.progressFill,
-                  { width: `${progress}%`, backgroundColor: colors.primary },
-                ]}
+                style={[styles.progressFill, { width: `${progress}%`, backgroundColor: colors.primary }]}
               />
             </View>
           )}
         </View>
-        <View style={[styles.arrowContainer, { backgroundColor: colors.primaryLight }]}>
-          <Text style={[styles.arrow, { color: colors.primary }]}>→</Text>
-        </View>
+
+        {/* Arrow */}
+        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: 8 }} />
       </TouchableOpacity>
     );
   };
@@ -145,67 +153,63 @@ export const HomeScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
-        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.background}
       />
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.brandLabel, { color: colors.primary }]}>READX</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Your Library</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoRow}>
+            <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
+              <Ionicons name="book" size={16} color="#FFF" />
+            </View>
+            <Text style={[styles.brandName, { color: colors.text }]}>ReadX</Text>
+          </View>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Tap any word to learn
+          </Text>
         </View>
         <TouchableOpacity
           onPress={toggleTheme}
-          style={[
-            styles.themeBtn,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              shadowColor: theme.mode === 'dark' ? '#000' : '#6366F1',
-            },
-          ]}
-          activeOpacity={0.7}
+          style={[styles.themeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9' }]}
+          activeOpacity={0.6}
         >
-          <Text style={styles.themeBtnText}>
-            {theme.mode === 'dark' ? '☀️' : '🌙'}
-          </Text>
+          <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={isDark ? '#FBBF24' : '#6366F1'} />
         </TouchableOpacity>
       </View>
 
-      {/* Upload Button */}
+      {/* Upload area */}
       <TouchableOpacity
-        style={[
-          styles.uploadBtn,
-          { backgroundColor: colors.primary, shadowColor: colors.primary },
-        ]}
+        style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
         onPress={pickPdf}
         disabled={loading}
-        activeOpacity={0.8}
+        activeOpacity={0.75}
       >
-        <View style={styles.uploadContent}>
-          <View style={styles.uploadIconCircle}>
-            <Text style={styles.uploadPlus}>+</Text>
+        <View style={styles.uploadInner}>
+          <View style={styles.uploadIconWrap}>
+            <Ionicons name="add" size={28} color="#FFF" />
           </View>
-          <View>
-            <Text style={styles.uploadText}>
-              {loading ? 'Opening...' : 'Upload PDF'}
+          <View style={styles.uploadTextWrap}>
+            <Text style={styles.uploadTitle}>
+              {loading ? 'Opening...' : 'Open PDF'}
             </Text>
-            <Text style={styles.uploadHint}>Choose a file from your device</Text>
+            <Text style={styles.uploadSub}>Browse files on your device</Text>
           </View>
+          <Ionicons name="folder-open-outline" size={20} color="rgba(255,255,255,0.5)" />
         </View>
       </TouchableOpacity>
 
-      {/* PDF List */}
+      {/* Content */}
       {pdfs.length > 0 ? (
         <>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              RECENT FILES
+          <View style={styles.sectionRow}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              RECENT
             </Text>
-            <Text style={[styles.sectionCount, { color: colors.primary }]}>
-              {pdfs.length}
-            </Text>
+            <View style={[styles.countPill, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+              <Text style={[styles.countNum, { color: colors.primary }]}>{pdfs.length}</Text>
+            </View>
           </View>
           <FlatList
             data={pdfs}
@@ -216,15 +220,13 @@ export const HomeScreen: React.FC = () => {
           />
         </>
       ) : (
-        <View style={styles.emptyState}>
-          <View style={[styles.emptyIconCircle, { backgroundColor: colors.primaryLight }]}>
-            <Text style={styles.emptyEmoji}>📚</Text>
+        <View style={styles.emptyWrap}>
+          <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
+            <Ionicons name="library-outline" size={40} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            Start your reading journey
-          </Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No documents yet</Text>
           <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            Upload a PDF to begin reading.{'\n'}Tap any word to learn its meaning instantly.
+            Open a PDF to start reading.{'\n'}Tap any word to see its meaning.
           </Text>
         </View>
       )}
@@ -233,195 +235,129 @@ export const HomeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+
+  /* Header */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 56,
-    paddingBottom: 4,
-  },
-  brandLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 3,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  themeBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  themeBtnText: {
-    fontSize: 22,
-  },
-  uploadBtn: {
-    marginHorizontal: 24,
-    marginTop: 24,
-    marginBottom: 8,
-    paddingVertical: 18,
     paddingHorizontal: 20,
-    borderRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingBottom: 6,
   },
-  uploadContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  uploadIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadPlus: {
-    fontSize: 26,
-    color: '#FFFFFF',
-    fontWeight: '400',
-    marginTop: -2,
-  },
-  uploadText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-  uploadHint: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginTop: 28,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-  },
-  sectionCount: {
-    fontSize: 13,
-    fontWeight: '700',
-    width: 26,
-    height: 26,
-    lineHeight: 26,
-    textAlign: 'center',
-    borderRadius: 13,
-    overflow: 'hidden',
-  },
-  list: {
-    paddingHorizontal: 24,
-    paddingBottom: 100,
-  },
-  pdfCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 10,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  pdfIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  pdfIconText: {
-    fontSize: 24,
-  },
-  pdfInfo: {
-    flex: 1,
-  },
-  pdfName: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
-  pdfMeta: {
-    fontSize: 12,
-    marginTop: 3,
-    letterSpacing: 0.2,
-  },
-  progressBar: {
-    height: 3,
-    borderRadius: 2,
-    marginTop: 8,
-  },
-  progressFill: {
-    height: 3,
-    borderRadius: 2,
-  },
-  arrowContainer: {
+  headerLeft: {},
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  logoMark: {
     width: 32,
     height: 32,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 10,
   },
-  arrow: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
+  brandName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.8 },
+  subtitle: { fontSize: 13, marginLeft: 1, letterSpacing: 0.1 },
+
+  themeBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 48,
   },
-  emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+
+  /* Upload */
+  uploadBtn: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 4,
+    borderRadius: 18,
+    overflow: 'hidden',
+    ...Platform.select({
+      android: { elevation: 6 },
+      ios: { shadowColor: '#6366F1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14 },
+    }),
+  },
+  uploadInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    gap: 14,
+  },
+  uploadIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
   },
-  emptyEmoji: {
-    fontSize: 44,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+  uploadTextWrap: { flex: 1 },
+  uploadTitle: { fontSize: 16, fontWeight: '700', color: '#FFF', letterSpacing: 0.2 },
+  uploadSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+
+  /* Section header */
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    marginTop: 26,
     marginBottom: 10,
-    letterSpacing: -0.3,
   },
-  emptyDesc: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 22,
+  sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+  countPill: {
+    minWidth: 28,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
+  countNum: { fontSize: 12, fontWeight: '800' },
+
+  /* PDF list */
+  list: { paddingHorizontal: 20, paddingBottom: 100 },
+  pdfCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginBottom: 8,
+    ...Platform.select({
+      android: { elevation: 1 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+    }),
+  },
+  pdfIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  pdfInfo: { flex: 1 },
+  pdfName: { fontSize: 15, fontWeight: '600', letterSpacing: 0.05 },
+  pdfMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
+  pdfMeta: { fontSize: 12 },
+  pageBadge: { flexDirection: 'row', alignItems: 'center' },
+  pageText: { fontSize: 11, fontWeight: '700' },
+  progressTrack: { height: 3, borderRadius: 2, marginTop: 8 },
+  progressFill: { height: 3, borderRadius: 2 },
+
+  /* Empty state */
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 44 },
+  emptyIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8, letterSpacing: -0.2 },
+  emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 22, letterSpacing: 0.1 },
 });

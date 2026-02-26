@@ -8,12 +8,13 @@ import {
 } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import * as FileSystem from 'expo-file-system';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { updatePdfProgress } from '../services/storageService';
 import { getPdfViewerHtml } from '../utils/pdfHtml';
 import { WordModal } from '../components/WordModal';
 import { PdfDocument, WebViewMessage } from '../types';
+import { Ionicons } from '@expo/vector-icons';
 
 type RouteParams = {
   PdfViewer: { pdf: PdfDocument };
@@ -22,6 +23,7 @@ type RouteParams = {
 export const PdfViewerScreen: React.FC = () => {
   const { theme } = useTheme();
   const route = useRoute<RouteProp<RouteParams, 'PdfViewer'>>();
+  const navigation = useNavigation();
   const { pdf } = route.params;
   const webViewRef = useRef<WebView>(null);
   const colors = theme.colors;
@@ -60,7 +62,7 @@ export const PdfViewerScreen: React.FC = () => {
 
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
-      const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
+      const message = JSON.parse(event.nativeEvent.data);
 
       if (message.type === 'wordTapped') {
         const word = message.word?.trim();
@@ -70,6 +72,10 @@ export const PdfViewerScreen: React.FC = () => {
         }
       } else if (message.type === 'pageChanged') {
         updatePdfProgress(pdf.id, message.page, message.totalPages);
+      } else if (message.type === 'fullscreenChanged') {
+        navigation.setOptions({
+          headerShown: !message.isFullscreen,
+        });
       }
     } catch {
       // Invalid message, ignore
@@ -92,7 +98,7 @@ export const PdfViewerScreen: React.FC = () => {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
         <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       </View>
     );
@@ -145,14 +151,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 15,
   },
-  errorEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 32,
+    marginTop: 12,
   },
   webview: {
     flex: 1,

@@ -22,6 +22,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* ─── Toolbar ─── */
     #toolbar {
       position: fixed;
       top: 0;
@@ -32,50 +33,93 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 10px;
       z-index: 100;
-      padding: 0 16px;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 0 12px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+      transition: transform 0.3s ease;
     }
 
-    #toolbar button {
+    #toolbar.hidden {
+      transform: translateY(-100%);
+    }
+
+    .tb-btn {
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
       color: white;
       border: none;
       border-radius: 10px;
-      padding: 8px 16px;
+      padding: 8px 14px;
       font-size: 14px;
       cursor: pointer;
-      min-width: 40px;
+      min-width: 38px;
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
       -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    #toolbar button:active {
-      transform: scale(0.95);
-    }
+    .tb-btn:active { transform: scale(0.94); }
+    .tb-btn:disabled { opacity: 0.3; box-shadow: none; }
 
-    #toolbar button:disabled {
-      opacity: 0.3;
+    .tb-btn-ghost {
+      background: rgba(255,255,255,0.08);
       box-shadow: none;
+      padding: 8px 10px;
+      min-width: 34px;
     }
 
     #pageInfo {
       color: #CBD5E1;
       font-size: 14px;
       font-weight: 600;
-      min-width: 90px;
+      min-width: 80px;
       text-align: center;
       letter-spacing: 0.5px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    #pageInfo:active {
+      background: rgba(99, 102, 241, 0.15);
     }
 
+    .tb-spacer { flex: 1; }
+
+    /* ─── Floating restore button (shown when toolbar hidden) ─── */
+    #restoreBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background: rgba(30, 41, 59, 0.92);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 12px;
+      color: #818CF8;
+      font-size: 20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 120;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      -webkit-tap-highlight-color: transparent;
+    }
+    #restoreBtn.show { display: flex; }
+
+    /* ─── Container ─── */
     #container {
       margin-top: 60px;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding-bottom: 40px;
+      transition: margin-top 0.3s ease;
     }
+    #container.fullscreen { margin-top: 8px; }
 
     .page-wrapper {
       position: relative;
@@ -94,10 +138,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
     .text-layer {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       overflow: hidden;
     }
 
@@ -121,6 +162,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       border-radius: 3px;
     }
 
+    /* ─── Loading ─── */
     #loading {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -137,8 +179,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     }
 
     .spinner {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       border: 3px solid #1E293B;
       border-top-color: #818CF8;
       border-radius: 50%;
@@ -146,14 +187,94 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       margin-bottom: 16px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-sub { color: #64748B; font-size: 13px; margin-top: 6px; }
+
+    /* ─── Go-to-page overlay ─── */
+    #gotoOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #gotoOverlay.show { display: flex; }
+
+    .goto-card {
+      background: #1E293B;
+      border-radius: 20px;
+      padding: 28px 24px 24px;
+      width: 280px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid rgba(99, 102, 241, 0.15);
     }
 
-    .loading-sub {
+    .goto-title {
+      color: #F1F5F9;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .goto-sub {
       color: #64748B;
       font-size: 13px;
-      margin-top: 6px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .goto-input {
+      width: 100%;
+      background: #0F172A;
+      border: 1.5px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #F1F5F9;
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+      -webkit-appearance: none;
+      margin-bottom: 18px;
+    }
+
+    .goto-input:focus {
+      border-color: #6366F1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .goto-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .goto-cancel {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      color: #94A3B8;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .goto-go {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+      color: white;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
     }
   </style>
 </head>
@@ -165,12 +286,45 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
   </div>
 
   <div id="toolbar">
-    <button id="prevBtn" onclick="prevPage()">&#9664;</button>
-    <span id="pageInfo">-</span>
-    <button id="nextBtn" onclick="nextPage()">&#9654;</button>
+    <button class="tb-btn" id="prevBtn" onclick="prevPage()">&#9664;</button>
+    <span id="pageInfo" onclick="openGoToPage()">-</span>
+    <button class="tb-btn" id="nextBtn" onclick="nextPage()">&#9654;</button>
+    <span class="tb-spacer"></span>
+    <button class="tb-btn tb-btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle toolbar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path id="fsIcon" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+      </svg>
+    </button>
   </div>
 
+  <button id="restoreBtn" onclick="toggleFullscreen()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+    </svg>
+  </button>
+
   <div id="container"></div>
+
+  <!-- Go-to-page overlay -->
+  <div id="gotoOverlay" onclick="closeGoToPage(event)">
+    <div class="goto-card" onclick="event.stopPropagation()">
+      <div class="goto-title">Go to Page</div>
+      <div class="goto-sub" id="gotoSub">Enter page number (1 - ?)</div>
+      <input
+        id="gotoInput"
+        class="goto-input"
+        type="number"
+        min="1"
+        inputmode="numeric"
+        placeholder="Page #"
+        onkeydown="if(event.key==='Enter')goToPage()"
+      />
+      <div class="goto-actions">
+        <button class="goto-cancel" onclick="closeGoToPage()">Cancel</button>
+        <button class="goto-go" onclick="goToPage()">Go</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 
@@ -180,6 +334,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let currentPage = ${startPage};
     let totalPages = 0;
     let rendering = false;
+    let isFullscreen = false;
     const SCALE = 2.0;
     const renderedPages = new Set();
     const START_PAGE = ${startPage};
@@ -359,6 +514,55 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    }
+
+    /* ─── Go-to-page ─── */
+    function openGoToPage() {
+      document.getElementById('gotoSub').textContent = 
+        'Enter page number (1 \\u2013 ' + totalPages + ')';
+      const input = document.getElementById('gotoInput');
+      input.max = totalPages;
+      input.value = '';
+      input.placeholder = currentPage;
+      document.getElementById('gotoOverlay').classList.add('show');
+      setTimeout(() => input.focus(), 100);
+    }
+
+    function closeGoToPage(e) {
+      if (e && e.target !== document.getElementById('gotoOverlay')) return;
+      document.getElementById('gotoOverlay').classList.remove('show');
+    }
+
+    async function goToPage() {
+      const input = document.getElementById('gotoInput');
+      let page = parseInt(input.value, 10);
+      if (isNaN(page)) page = currentPage;
+      page = Math.max(1, Math.min(page, totalPages));
+
+      // Render target and neighbours
+      for (let i = Math.max(1, page - 1); i <= Math.min(page + 3, totalPages); i++) {
+        await renderPage(i);
+      }
+
+      currentPage = page;
+      updatePageInfo();
+      scrollToPage(page);
+      sendPageChange();
+      document.getElementById('gotoOverlay').classList.remove('show');
+    }
+
+    /* ─── Fullscreen toggle ─── */
+    function toggleFullscreen() {
+      isFullscreen = !isFullscreen;
+      document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
+      document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
+      document.getElementById('restoreBtn').classList.toggle('show', isFullscreen);
+
+      // Notify RN to hide/show header
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'fullscreenChanged',
+        isFullscreen: isFullscreen
+      }));
     }
 
     // Detect scroll to update current page
