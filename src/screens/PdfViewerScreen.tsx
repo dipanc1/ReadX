@@ -39,7 +39,9 @@ export const PdfViewerScreen: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    loadPdf();
+    // Defer PDF loading slightly to let the navigation animation finish
+    const timer = setTimeout(() => loadPdf(), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Handle Android hardware back button: exit fullscreen first

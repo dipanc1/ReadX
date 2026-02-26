@@ -345,22 +345,21 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
         document.getElementById('loading').style.display = 'none';
         updatePageInfo();
 
-        // Render a window around the start page (includes pages BEFORE for backward scrolling)
-        const renderStart = Math.max(1, START_PAGE - 5);
-        const renderEnd = Math.min(START_PAGE + 4, totalPages);
+        // 1. Render the START page first so it's visible instantly
+        await renderPage(START_PAGE);
+        scrollToPage(START_PAGE, false);
+        sendPageChange();
 
-        for (let i = renderStart; i <= renderEnd; i++) {
-          await renderPage(i);
-          // Yield to let browser paint between pages so UI stays responsive
+        // 2. Lazily render nearby pages in the background
+        const nearby = [];
+        for (let i = Math.max(1, START_PAGE - 3); i <= Math.min(START_PAGE + 3, totalPages); i++) {
+          if (i !== START_PAGE) nearby.push(i);
+        }
+        for (const p of nearby) {
+          await renderPage(p);
           await new Promise(r => setTimeout(r, 0));
         }
 
-        // Scroll to start page after rendering
-        if (START_PAGE > 1) {
-          setTimeout(() => scrollToPage(START_PAGE), 300);
-        }
-
-        sendPageChange();
       } catch (err) {
         document.getElementById('loading').innerHTML =
           '<span style="color:#F87171">Error loading PDF: ' + err.message + '</span>';
@@ -388,9 +387,19 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       const SCALE = renderScale;
       const displayScale = screenWidth / renderViewport.width;
 
-      const wrapper = document.createElement('div');
-      wrapper.className = 'page-wrapper';
-      wrapper.id = 'page-' + pageNum;
+      // Check if a placeholder wrapper already exists (from page unloading)
+      let wrapper = document.getElementById('page-' + pageNum);
+      const isExisting = !!wrapper;
+
+      if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.className = 'page-wrapper';
+        wrapper.id = 'page-' + pageNum;
+      } else {
+        // Clear placeholder contents so we can repopulate
+        wrapper.innerHTML = '';
+      }
+
       wrapper.style.width = screenWidth + 'px';
       wrapper.style.height = (renderViewport.height * displayScale) + 'px';
 
@@ -406,19 +415,21 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       textDiv.className = 'text-layer';
       wrapper.appendChild(textDiv);
 
-      // Insert in correct page order
-      const container = document.getElementById('container');
-      const existingPages = container.querySelectorAll('.page-wrapper');
-      let inserted = false;
-      for (let i = 0; i < existingPages.length; i++) {
-        const existingNum = parseInt(existingPages[i].id.split('-')[1]);
-        if (pageNum < existingNum) {
-          container.insertBefore(wrapper, existingPages[i]);
-          inserted = true;
-          break;
+      // Insert in correct page order (only if this is a brand new wrapper)
+      if (!isExisting) {
+        const container = document.getElementById('container');
+        const existingPages = container.querySelectorAll('.page-wrapper');
+        let inserted = false;
+        for (let i = 0; i < existingPages.length; i++) {
+          const existingNum = parseInt(existingPages[i].id.split('-')[1]);
+          if (pageNum < existingNum) {
+            container.insertBefore(wrapper, existingPages[i]);
+            inserted = true;
+            break;
+          }
         }
+        if (!inserted) container.appendChild(wrapper);
       }
-      if (!inserted) container.appendChild(wrapper);
 
       const ctx = canvas.getContext('2d', { alpha: false });
       // Fill white immediately so the canvas never flashes black while rendering
@@ -528,9 +539,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       sendPageChange();
     }
 
-    function scrollToPage(num) {
+    function scrollToPage(num, smooth) {
       const el = document.getElementById('page-' + num);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) el.scrollIntoView({ behavior: smooth !== false ? 'smooth' : 'instant', block: 'start' });
     }
 
     /* ─── Go-to-page ─── */
@@ -751,12 +762,12 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     }
 
     // ─── Scroll detection with bidirectional lazy page rendering ───
-    const MAX_RENDERED_PAGES = 15; // Keep at most 15 pages in DOM to save memory
+    const MAX_RENDERED_PAGES = 10; // Keep at most 10 pages in DOM to save memory
 
     function unloadDistantPages() {
       if (renderedPages.size <= MAX_RENDERED_PAGES) return;
       const pagesToKeep = new Set();
-      for (let i = Math.max(1, currentPage - 5); i <= Math.min(currentPage + 5, totalPages); i++) {
+      for (let i = Math.max(1, currentPage - 4); i <= Math.min(currentPage + 4, totalPages); i++) {
         pagesToKeep.add(i);
       }
 
