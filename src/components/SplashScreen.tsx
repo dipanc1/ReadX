@@ -177,7 +177,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           marginTop: 10,
         }}
       >
-        <Text style={styles.tagline}>Tap. Read. Learn.</Text>
+        <Text style={styles.tagline}>PDFs, But Better</Text>
       </Animated.View>
 
       {/* Loading dots */}

@@ -834,29 +834,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       }, 100);
     });
 
-    // ─── Double-tap to zoom ───
-    let lastTap = 0;
-    let zoomed = false;
-    document.addEventListener('touchend', (e) => {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        e.preventDefault();
-        const container = document.getElementById('container');
-        if (!zoomed) {
-          const touch = e.changedTouches[0];
-          const x = touch.clientX;
-          const y = touch.clientY;
-          container.style.transformOrigin = x + 'px ' + (y + window.scrollY) + 'px';
-          container.style.transform = 'scale(2)';
-          zoomed = true;
-        } else {
-          container.style.transform = '';
-          zoomed = false;
-        }
-      }
-      lastTap = now;
-    }, { passive: false });
-
     init();
   </script>
 </body>
