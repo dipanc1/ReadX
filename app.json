@@ -12,25 +12,16 @@
       "backgroundColor": "#1a1a2e"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.readx.app"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1a1a2e",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "package": "com.readx.app",
-      "permissions": ["READ_EXTERNAL_STORAGE"],
-      "minSdkVersion": 24
+        "backgroundColor": "#1a1a2e"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-document-picker"
-    ]
+    }
   }
 }
