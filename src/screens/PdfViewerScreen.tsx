@@ -7,7 +7,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { updatePdfProgress } from '../services/storageService';
@@ -47,7 +47,7 @@ export const PdfViewerScreen: React.FC = () => {
 
       // Read PDF file as base64
       const base64 = await FileSystem.readAsStringAsync(pdf.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
 
       // Generate HTML with embedded PDF data, resuming from last page
