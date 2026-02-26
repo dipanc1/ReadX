@@ -58,7 +58,6 @@ No sign-ups. No subscriptions. Just read and learn.
 
 ## Screenshots
 
-> *Add your screenshots here*
 >
 > | Library | PDF Viewer | Word Definition |
 > |---------|-----------|-----------------|
