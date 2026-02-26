@@ -1,0 +1,170 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  StatusBar,
+} from 'react-native';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
+import { updatePdfProgress } from '../services/storageService';
+import { getPdfViewerHtml } from '../utils/pdfHtml';
+import { WordModal } from '../components/WordModal';
+import { PdfDocument, WebViewMessage } from '../types';
+
+type RouteParams = {
+  PdfViewer: { pdf: PdfDocument };
+};
+
+export const PdfViewerScreen: React.FC = () => {
+  const { theme } = useTheme();
+  const route = useRoute<RouteProp<RouteParams, 'PdfViewer'>>();
+  const { pdf } = route.params;
+  const webViewRef = useRef<WebView>(null);
+  const colors = theme.colors;
+
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Word modal state
+  const [selectedWord, setSelectedWord] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    loadPdf();
+  }, []);
+
+  const loadPdf = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Read PDF file as base64
+      const base64 = await readAsStringAsync(pdf.uri, {
+        encoding: EncodingType.Base64,
+      });
+
+      // Generate HTML with embedded PDF data
+      const html = getPdfViewerHtml(base64);
+      setHtmlContent(html);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMessage = (event: WebViewMessageEvent) => {
+    try {
+      const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
+
+      if (message.type === 'wordTapped') {
+        const word = message.word?.trim();
+        if (word && word.length >= 2) {
+          setSelectedWord(word);
+          setModalVisible(true);
+        }
+      } else if (message.type === 'pageChanged') {
+        updatePdfProgress(pdf.id, message.page);
+      }
+    } catch {
+      // Invalid message, ignore
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading PDF...
+        </Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#16213e" />
+
+      {htmlContent && (
+        <WebView
+          ref={webViewRef}
+          source={{ html: htmlContent }}
+          style={styles.webview}
+          onMessage={handleMessage}
+          javaScriptEnabled
+          domStorageEnabled
+          originWhitelist={['*']}
+          allowFileAccess
+          mixedContentMode="always"
+          startInLoadingState
+          renderLoading={() => (
+            <View style={[styles.webviewLoading, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+        />
+      )}
+
+      <WordModal
+        visible={modalVisible}
+        word={selectedWord}
+        pdfName={pdf.name}
+        onClose={() => setModalVisible(false)}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+  },
+  errorEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  webview: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  webviewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
