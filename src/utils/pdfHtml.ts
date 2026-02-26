@@ -595,27 +595,64 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
         return;
       }
 
-      // Extract text from all pages (lazy cache)
-      for (let p = 1; p <= totalPages; p++) {
-        if (!pageTextCache[p]) {
-          const pg = await pdfDoc.getPage(p);
-          const tc = await pg.getTextContent();
-          pageTextCache[p] = tc.items.map(it => it.str).join(' ');
-        }
-      }
+      document.getElementById('searchInfo').textContent = 'Searching...';
 
-      // Find pages with matches
+      // Phase 1: Instantly search already-cached pages
       for (let p = 1; p <= totalPages; p++) {
-        if (pageTextCache[p].toLowerCase().indexOf(query) !== -1) {
+        if (pageTextCache[p] && pageTextCache[p].toLowerCase().indexOf(query) !== -1) {
           searchMatches.push(p);
         }
       }
 
+      // Show immediate results if any
       if (searchMatches.length > 0) {
         currentMatchIdx = 0;
         await navigateToMatch();
-      } else {
+      }
+
+      // Phase 2: Extract uncached pages in small batches (non-blocking)
+      const uncached = [];
+      for (let p = 1; p <= totalPages; p++) {
+        if (!pageTextCache[p]) uncached.push(p);
+      }
+
+      const BATCH = 5;
+      for (let b = 0; b < uncached.length; b += BATCH) {
+        // Check if query changed while we were working
+        const currentQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+        if (currentQuery !== query) return;
+
+        const batch = uncached.slice(b, b + BATCH);
+        await Promise.all(batch.map(async (p) => {
+          const pg = await pdfDoc.getPage(p);
+          const tc = await pg.getTextContent();
+          pageTextCache[p] = tc.items.map(it => it.str).join(' ');
+          if (pageTextCache[p].toLowerCase().indexOf(query) !== -1) {
+            if (!searchMatches.includes(p)) searchMatches.push(p);
+          }
+        }));
+
+        // Sort matches by page order
+        searchMatches.sort((a, b) => a - b);
+
+        // Update count live
+        if (searchMatches.length > 0 && currentMatchIdx === -1) {
+          currentMatchIdx = 0;
+          await navigateToMatch();
+        } else if (searchMatches.length > 0) {
+          document.getElementById('searchInfo').textContent =
+            (currentMatchIdx + 1) + ' of ' + searchMatches.length;
+        }
+
+        // Yield to keep UI responsive
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      if (searchMatches.length === 0) {
         document.getElementById('searchInfo').textContent = 'No results';
+      } else {
+        document.getElementById('searchInfo').textContent =
+          (currentMatchIdx + 1) + ' of ' + searchMatches.length;
       }
     }
 
