@@ -139,7 +139,12 @@ export const PdfViewerScreen: React.FC = () => {
         visible={modalVisible}
         word={selectedWord}
         pdfName={pdf.name}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          webViewRef.current?.injectJavaScript(
+            `document.querySelectorAll('.word-highlight').forEach(el => el.classList.remove('word-highlight')); true;`
+          );
+        }}
       />
     </View>
   );

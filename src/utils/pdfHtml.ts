@@ -454,6 +454,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
               type: 'wordTapped',
               word: word
             }));
+            // Auto-remove highlight after 5 seconds as fallback
+            setTimeout(() => span.classList.remove('word-highlight'), 5000);
           });
 
           textDiv.appendChild(span);
