@@ -161,17 +161,12 @@ export const HomeScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoRow}>
-            <View style={[styles.logoMark, { backgroundColor: isDark ? 'rgba(129,140,248,0.15)' : '#EEF0FF' }]}>
-              <Ionicons name="reader" size={22} color={colors.primary} />
+            <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
+              <Ionicons name="book" size={20} color="#FFF" />
             </View>
-            <View>
-              <Text style={[styles.brandName, { color: colors.text }]}>
-                Read<Text style={{ color: colors.primary }}>X</Text>
-              </Text>
-              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Your smart reading companion
-              </Text>
-            </View>
+            <Text style={[styles.brandName, { color: colors.text }]}>
+              Read<Text style={{ color: colors.primary, fontWeight: '900' }}>X</Text>
+            </Text>
           </View>
         </View>
         <TouchableOpacity
@@ -247,20 +242,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 48 : 60,
-    paddingBottom: 6,
+    paddingTop: Platform.OS === 'android' ? 52 : 62,
+    paddingBottom: 12,
   },
   headerLeft: {},
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   logoMark: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      android: { elevation: 8 },
+      ios: { shadowColor: '#6366F1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10 },
+    }),
   },
-  brandName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-  subtitle: { fontSize: 11, letterSpacing: 0.2, marginTop: 1 },
+  brandName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
 
   themeBtn: {
     width: 42,

@@ -14,7 +14,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
     body {
       background: #0F172A;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -25,9 +25,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     /* ─── Toolbar ─── */
     #toolbar {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 52px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
@@ -39,72 +37,96 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
-
-    #toolbar.hidden {
-      transform: translateY(-100%);
-    }
+    #toolbar.hidden { transform: translateY(-100%); }
 
     .tb-btn {
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 8px 14px;
-      font-size: 14px;
-      cursor: pointer;
+      color: white; border: none; border-radius: 10px;
+      padding: 8px 14px; font-size: 14px; cursor: pointer;
       min-width: 38px;
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
       -webkit-tap-highlight-color: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
     }
-
     .tb-btn:active { transform: scale(0.94); }
     .tb-btn:disabled { opacity: 0.3; box-shadow: none; }
 
     .tb-btn-ghost {
       background: rgba(255,255,255,0.08);
-      box-shadow: none;
-      padding: 8px 10px;
-      min-width: 34px;
+      box-shadow: none; padding: 8px 10px; min-width: 34px;
     }
 
     #pageInfo {
-      color: #CBD5E1;
-      font-size: 14px;
-      font-weight: 600;
-      min-width: 80px;
-      text-align: center;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 8px;
+      color: #CBD5E1; font-size: 14px; font-weight: 600;
+      min-width: 80px; text-align: center; letter-spacing: 0.5px;
+      cursor: pointer; padding: 6px 10px; border-radius: 8px;
       transition: background 0.2s;
     }
-    #pageInfo:active {
-      background: rgba(99, 102, 241, 0.15);
-    }
+    #pageInfo:active { background: rgba(99, 102, 241, 0.15); }
 
     .tb-spacer { flex: 1; }
 
-    /* ─── Floating restore button (shown when toolbar hidden) ─── */
-    #restoreBtn {
+    /* ─── Search bar ─── */
+    #searchBar {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
+      top: -56px; left: 0; right: 0;
+      height: 52px;
+      background: #1E293B;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 101;
+      padding: 0 12px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+      transition: top 0.3s ease;
+    }
+    #searchBar.show { top: 0; }
+
+    #searchInput {
+      flex: 1;
+      background: #0F172A;
+      border: 1.5px solid rgba(99, 102, 241, 0.2);
+      border-radius: 10px;
+      padding: 9px 14px;
+      color: #F1F5F9;
+      font-size: 15px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    #searchInput:focus { border-color: #6366F1; }
+    #searchInput::placeholder { color: #475569; }
+
+    #searchInfo {
+      color: #64748B; font-size: 12px; font-weight: 600;
+      min-width: 44px; text-align: center;
+    }
+
+    .search-nav-btn {
+      background: rgba(255,255,255,0.08);
+      color: #CBD5E1; border: none; border-radius: 8px;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .search-nav-btn:active { background: rgba(99, 102, 241, 0.2); }
+
+    .search-close-btn {
+      background: none; border: none; color: #94A3B8;
+      font-size: 18px; cursor: pointer; padding: 4px 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ─── Floating restore button ─── */
+    #restoreBtn {
+      position: fixed; top: 10px; right: 10px;
+      width: 40px; height: 40px;
       background: rgba(30, 41, 59, 0.92);
       border: 1px solid rgba(99, 102, 241, 0.25);
       border-radius: 12px;
-      color: #818CF8;
-      font-size: 20px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 120;
+      color: #818CF8; font-size: 20px;
+      display: none; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 120;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       -webkit-tap-highlight-color: transparent;
     }
@@ -113,166 +135,111 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     /* ─── Container ─── */
     #container {
       margin-top: 60px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
       transition: margin-top 0.3s ease;
     }
     #container.fullscreen { margin-top: 8px; }
 
     .page-wrapper {
-      position: relative;
-      margin: 6px auto;
+      position: relative; margin: 6px auto;
       background: white;
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      border-radius: 4px;
-      overflow: hidden;
+      border-radius: 4px; overflow: hidden;
     }
-
-    .page-wrapper canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
+    .page-wrapper canvas { display: block; width: 100%; height: auto; }
 
     .text-layer {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       overflow: hidden;
     }
 
     .text-layer span {
-      position: absolute;
-      color: transparent;
-      cursor: pointer;
-      white-space: pre;
+      position: absolute; color: transparent;
+      cursor: pointer; white-space: pre; overflow: hidden;
       transform-origin: 0 0;
       -webkit-tap-highlight-color: transparent;
       border-radius: 2px;
     }
-
-    .text-layer span:active {
-      background: rgba(99, 102, 241, 0.15);
-    }
+    .text-layer span:active { background: rgba(99, 102, 241, 0.15); }
 
     .text-layer span.word-highlight {
-      background: rgba(99, 102, 241, 0.3);
+      background: rgba(99, 102, 241, 0.35);
       box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
       border-radius: 3px;
     }
 
+    .text-layer span.search-match {
+      background: rgba(251, 191, 36, 0.35) !important;
+    }
+    .text-layer span.search-match-active {
+      background: rgba(251, 146, 36, 0.55) !important;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+    }
+
     /* ─── Loading ─── */
     #loading {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #0F172A;
-      z-index: 200;
-      color: #818CF8;
-      font-size: 16px;
-      font-weight: 500;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #0F172A; z-index: 200;
+      color: #818CF8; font-size: 16px; font-weight: 500;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-
     .spinner {
       width: 44px; height: 44px;
-      border: 3px solid #1E293B;
-      border-top-color: #818CF8;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      border: 3px solid #1E293B; border-top-color: #818CF8;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
       margin-bottom: 16px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .loading-sub { color: #64748B; font-size: 13px; margin-top: 6px; }
 
     /* ─── Go-to-page overlay ─── */
     #gotoOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 300;
-      display: none;
-      align-items: center;
-      justify-content: center;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 300;
+      display: none; align-items: center; justify-content: center;
     }
     #gotoOverlay.show { display: flex; }
 
     .goto-card {
-      background: #1E293B;
-      border-radius: 20px;
-      padding: 28px 24px 24px;
-      width: 280px;
+      background: #1E293B; border-radius: 20px;
+      padding: 28px 24px 24px; width: 280px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       border: 1px solid rgba(99, 102, 241, 0.15);
     }
-
     .goto-title {
-      color: #F1F5F9;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      text-align: center;
+      color: #F1F5F9; font-size: 18px; font-weight: 700;
+      margin-bottom: 6px; text-align: center;
     }
-
     .goto-sub {
-      color: #64748B;
-      font-size: 13px;
-      text-align: center;
-      margin-bottom: 20px;
+      color: #64748B; font-size: 13px;
+      text-align: center; margin-bottom: 20px;
     }
-
     .goto-input {
-      width: 100%;
-      background: #0F172A;
+      width: 100%; background: #0F172A;
       border: 1.5px solid rgba(99, 102, 241, 0.3);
-      border-radius: 12px;
-      padding: 14px 16px;
-      color: #F1F5F9;
-      font-size: 20px;
-      font-weight: 600;
-      text-align: center;
-      outline: none;
-      -webkit-appearance: none;
-      margin-bottom: 18px;
+      border-radius: 12px; padding: 14px 16px;
+      color: #F1F5F9; font-size: 20px; font-weight: 600;
+      text-align: center; outline: none;
+      -webkit-appearance: none; margin-bottom: 18px;
     }
-
     .goto-input:focus {
       border-color: #6366F1;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
-
-    .goto-actions {
-      display: flex;
-      gap: 10px;
-    }
-
+    .goto-actions { display: flex; gap: 10px; }
     .goto-cancel {
-      flex: 1;
-      padding: 12px;
-      border-radius: 12px;
+      flex: 1; padding: 12px; border-radius: 12px;
       background: rgba(255,255,255,0.06);
-      color: #94A3B8;
-      border: none;
-      font-size: 15px;
-      font-weight: 600;
+      color: #94A3B8; border: none; font-size: 15px; font-weight: 600;
       cursor: pointer;
     }
-
     .goto-go {
-      flex: 1;
-      padding: 12px;
-      border-radius: 12px;
+      flex: 1; padding: 12px; border-radius: 12px;
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-      color: white;
-      border: none;
-      font-size: 15px;
-      font-weight: 700;
+      color: white; border: none; font-size: 15px; font-weight: 700;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
     }
@@ -290,11 +257,25 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     <span id="pageInfo" onclick="openGoToPage()">-</span>
     <button class="tb-btn" id="nextBtn" onclick="nextPage()">&#9654;</button>
     <span class="tb-spacer"></span>
+    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </button>
     <button class="tb-btn tb-btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle toolbar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path id="fsIcon" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
       </svg>
     </button>
+  </div>
+
+  <!-- Search bar (slides in from top, replaces toolbar) -->
+  <div id="searchBar">
+    <input id="searchInput" type="text" placeholder="Search in document..." oninput="onSearchInput()" onkeydown="if(event.key==='Enter')searchNext()" />
+    <span id="searchInfo"></span>
+    <button class="search-nav-btn" onclick="searchPrev()">&#9650;</button>
+    <button class="search-nav-btn" onclick="searchNext()">&#9660;</button>
+    <button class="search-close-btn" onclick="closeSearch()">&#10005;</button>
   </div>
 
   <button id="restoreBtn" onclick="toggleFullscreen()">
@@ -327,7 +308,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
   </div>
 
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     let pdfDoc = null;
@@ -338,6 +319,16 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     const SCALE = 2.0;
     const renderedPages = new Set();
     const START_PAGE = ${startPage};
+
+    // Search state
+    let searchMatches = [];
+    let currentMatchIdx = -1;
+    let searchOpen = false;
+    const pageTextCache = {};
+
+    // Measurement canvas for accurate proportional word positioning
+    const _mc = document.createElement('canvas');
+    const _mx = _mc.getContext('2d');
 
     // Decode base64 PDF data
     const pdfData = atob('${base64Data}');
@@ -352,23 +343,23 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
         totalPages = pdfDoc.numPages;
         document.getElementById('loading').style.display = 'none';
         updatePageInfo();
-        
-        // Render pages around the start page
-        const renderStart = Math.max(1, START_PAGE - 1);
-        const renderEnd = Math.min(renderStart + 4, totalPages);
-        
+
+        // Render a window around the start page (includes pages BEFORE for backward scrolling)
+        const renderStart = Math.max(1, START_PAGE - 5);
+        const renderEnd = Math.min(START_PAGE + 4, totalPages);
+
         for (let i = renderStart; i <= renderEnd; i++) {
           await renderPage(i);
         }
-        
+
         // Scroll to start page after rendering
         if (START_PAGE > 1) {
           setTimeout(() => scrollToPage(START_PAGE), 300);
         }
-        
+
         sendPageChange();
       } catch (err) {
-        document.getElementById('loading').innerHTML = 
+        document.getElementById('loading').innerHTML =
           '<span style="color:#F87171">Error loading PDF: ' + err.message + '</span>';
       }
     }
@@ -382,25 +373,22 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       const screenWidth = window.innerWidth - 12;
       const displayScale = screenWidth / viewport.width;
 
-      // Create page wrapper
       const wrapper = document.createElement('div');
       wrapper.className = 'page-wrapper';
       wrapper.id = 'page-' + pageNum;
       wrapper.style.width = screenWidth + 'px';
       wrapper.style.height = (viewport.height * displayScale) + 'px';
 
-      // Canvas
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       wrapper.appendChild(canvas);
 
-      // Text layer
       const textDiv = document.createElement('div');
       textDiv.className = 'text-layer';
       wrapper.appendChild(textDiv);
 
-      // Insert in correct order
+      // Insert in correct page order
       const container = document.getElementById('container');
       const existingPages = container.querySelectorAll('.page-wrapper');
       let inserted = false;
@@ -412,54 +400,56 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           break;
         }
       }
-      if (!inserted) {
-        container.appendChild(wrapper);
-      }
+      if (!inserted) container.appendChild(wrapper);
 
-      // Render canvas
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Render text layer for word tapping
+      // ── Build text layer with proportional word positioning ──
       const textContent = await page.getTextContent();
-      
+      let fullPageText = '';
+
       textContent.items.forEach((item) => {
         if (!item.str || !item.str.trim()) return;
+        fullPageText += item.str + ' ';
 
         const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-        
-        // Split text into individual words
-        const words = item.str.split(/\\s+/);
-        let charOffset = 0;
+        const fontHeight = item.height * SCALE;
 
-        words.forEach((word) => {
-          if (!word.trim()) {
-            charOffset += word.length + 1;
-            return;
-          }
+        // Use canvas measurement for proportional character widths
+        _mx.font = fontHeight + 'px sans-serif';
+        const measuredTotal = _mx.measureText(item.str).width;
+        const actualTotal = item.width * SCALE;
+        const wScale = measuredTotal > 0 ? actualTotal / measuredTotal : 1;
+
+        // Extract words with regex to get correct string indices
+        const wordRe = /\\S+/g;
+        let m;
+        while ((m = wordRe.exec(item.str)) !== null) {
+          const word = m[0];
+          const textBefore = item.str.substring(0, m.index);
+          const measuredBefore = _mx.measureText(textBefore).width;
+          const measuredWord = _mx.measureText(word).width;
+
+          const wordX = tx[4] + (measuredBefore * wScale);
+          const wordW = measuredWord * wScale;
+          const wordY = tx[5] - (fontHeight * 0.85);
 
           const span = document.createElement('span');
           span.textContent = word;
-          
-          // Approximate word position
-          const charWidth = (item.width / item.str.length) * SCALE;
-          const wordX = tx[4] + (charOffset * (item.width / item.str.length) * SCALE);
-          const wordY = tx[5] - (item.height * SCALE * 0.85);
-
           span.style.left = (wordX * displayScale) + 'px';
           span.style.top = (wordY * displayScale) + 'px';
-          span.style.fontSize = (item.height * SCALE * displayScale * 0.9) + 'px';
+          span.style.width = (wordW * displayScale) + 'px';
+          span.style.height = (fontHeight * displayScale) + 'px';
+          span.style.fontSize = (fontHeight * displayScale * 0.9) + 'px';
+          span.style.lineHeight = (fontHeight * displayScale) + 'px';
 
           span.addEventListener('click', (e) => {
             e.stopPropagation();
-            
-            // Remove previous highlights
-            document.querySelectorAll('.word-highlight').forEach(el => 
+            document.querySelectorAll('.word-highlight').forEach(el =>
               el.classList.remove('word-highlight')
             );
             span.classList.add('word-highlight');
-
-            // Send word to React Native
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'wordTapped',
               word: word
@@ -467,13 +457,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           });
 
           textDiv.appendChild(span);
-          charOffset += word.length + 1;
-        });
+        }
       });
+
+      pageTextCache[pageNum] = fullPageText;
     }
 
     function updatePageInfo() {
-      document.getElementById('pageInfo').textContent = 
+      document.getElementById('pageInfo').textContent =
         currentPage + ' / ' + totalPages;
       document.getElementById('prevBtn').disabled = currentPage <= 1;
       document.getElementById('nextBtn').disabled = currentPage >= totalPages;
@@ -490,7 +481,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     async function prevPage() {
       if (currentPage <= 1) return;
       currentPage--;
-      for (let i = Math.max(1, currentPage - 1); i <= currentPage; i++) {
+      for (let i = Math.max(1, currentPage - 2); i <= currentPage; i++) {
         await renderPage(i);
       }
       updatePageInfo();
@@ -511,14 +502,12 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
     function scrollToPage(num) {
       const el = document.getElementById('page-' + num);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* ─── Go-to-page ─── */
     function openGoToPage() {
-      document.getElementById('gotoSub').textContent = 
+      document.getElementById('gotoSub').textContent =
         'Enter page number (1 \\u2013 ' + totalPages + ')';
       const input = document.getElementById('gotoInput');
       input.max = totalPages;
@@ -539,8 +528,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       if (isNaN(page)) page = currentPage;
       page = Math.max(1, Math.min(page, totalPages));
 
-      // Render target and neighbours
-      for (let i = Math.max(1, page - 1); i <= Math.min(page + 3, totalPages); i++) {
+      for (let i = Math.max(1, page - 2); i <= Math.min(page + 3, totalPages); i++) {
         await renderPage(i);
       }
 
@@ -557,15 +545,139 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
       document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
       document.getElementById('restoreBtn').classList.toggle('show', isFullscreen);
-
-      // Notify RN to hide/show header
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'fullscreenChanged',
         isFullscreen: isFullscreen
       }));
     }
 
-    // Detect scroll to update current page
+    /* ─── Search ─── */
+    function openSearch() {
+      searchOpen = true;
+      document.getElementById('searchBar').classList.add('show');
+      document.getElementById('toolbar').classList.add('hidden');
+      document.getElementById('container').style.marginTop = '60px';
+      setTimeout(() => document.getElementById('searchInput').focus(), 150);
+    }
+
+    function closeSearch() {
+      searchOpen = false;
+      document.getElementById('searchBar').classList.remove('show');
+      document.getElementById('toolbar').classList.remove('hidden');
+      document.getElementById('container').style.marginTop = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchInfo').textContent = '';
+      clearSearchHighlights();
+      searchMatches = [];
+      currentMatchIdx = -1;
+    }
+
+    let searchDebounce;
+    function onSearchInput() {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => performSearch(), 300);
+    }
+
+    function clearSearchHighlights() {
+      document.querySelectorAll('.search-match, .search-match-active').forEach(el => {
+        el.classList.remove('search-match', 'search-match-active');
+      });
+    }
+
+    async function performSearch() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      clearSearchHighlights();
+      searchMatches = [];
+      currentMatchIdx = -1;
+
+      if (!query) {
+        document.getElementById('searchInfo').textContent = '';
+        return;
+      }
+
+      // Extract text from all pages (lazy cache)
+      for (let p = 1; p <= totalPages; p++) {
+        if (!pageTextCache[p]) {
+          const pg = await pdfDoc.getPage(p);
+          const tc = await pg.getTextContent();
+          pageTextCache[p] = tc.items.map(it => it.str).join(' ');
+        }
+      }
+
+      // Find pages with matches
+      for (let p = 1; p <= totalPages; p++) {
+        if (pageTextCache[p].toLowerCase().indexOf(query) !== -1) {
+          searchMatches.push(p);
+        }
+      }
+
+      if (searchMatches.length > 0) {
+        currentMatchIdx = 0;
+        await navigateToMatch();
+      } else {
+        document.getElementById('searchInfo').textContent = 'No results';
+      }
+    }
+
+    async function navigateToMatch() {
+      if (searchMatches.length === 0) return;
+      const page = searchMatches[currentMatchIdx];
+      document.getElementById('searchInfo').textContent =
+        (currentMatchIdx + 1) + ' of ' + searchMatches.length;
+
+      // Render the target page and neighbors
+      for (let i = Math.max(1, page - 1); i <= Math.min(page + 2, totalPages); i++) {
+        await renderPage(i);
+      }
+
+      currentPage = page;
+      updatePageInfo();
+      scrollToPage(page);
+      sendPageChange();
+
+      // Highlight matching words on the active match page
+      clearSearchHighlights();
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const wrapper = document.getElementById('page-' + page);
+      if (wrapper) {
+        const spans = wrapper.querySelectorAll('.text-layer span');
+        spans.forEach(sp => {
+          if (sp.textContent.toLowerCase().indexOf(query) !== -1) {
+            sp.classList.add('search-match-active');
+          }
+        });
+      }
+
+      // Light highlight on other visible match pages
+      searchMatches.forEach((mp, idx) => {
+        if (idx === currentMatchIdx) return;
+        const w = document.getElementById('page-' + mp);
+        if (w) {
+          w.querySelectorAll('.text-layer span').forEach(sp => {
+            if (sp.textContent.toLowerCase().indexOf(query) !== -1) {
+              sp.classList.add('search-match');
+            }
+          });
+        }
+      });
+    }
+
+    async function searchNext() {
+      if (searchMatches.length === 0) {
+        await performSearch();
+        return;
+      }
+      currentMatchIdx = (currentMatchIdx + 1) % searchMatches.length;
+      await navigateToMatch();
+    }
+
+    async function searchPrev() {
+      if (searchMatches.length === 0) return;
+      currentMatchIdx = (currentMatchIdx - 1 + searchMatches.length) % searchMatches.length;
+      await navigateToMatch();
+    }
+
+    // ─── Scroll detection with bidirectional lazy page rendering ───
     let scrollTimeout;
     window.addEventListener('scroll', () => {
       clearTimeout(scrollTimeout);
@@ -573,7 +685,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
         const pages = document.querySelectorAll('.page-wrapper');
         let closest = 1;
         let closestDist = Infinity;
-        
+
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
           const dist = Math.abs(rect.top - 60);
@@ -587,8 +699,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           currentPage = closest;
           updatePageInfo();
           sendPageChange();
-          
-          for (let i = currentPage; i <= Math.min(currentPage + 3, totalPages); i++) {
+
+          // Render pages in BOTH directions for smooth scrolling
+          for (let i = Math.max(1, currentPage - 3); i <= Math.min(currentPage + 3, totalPages); i++) {
             renderPage(i);
           }
         }
