@@ -14,6 +14,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.readx.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#1a1a2e"
@@ -21,6 +22,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "45ea10e1-c018-4b2b-a7cb-5a2ec24db577"
+      }
+    },
+    "owner": "dipanc1"
   }
 }
