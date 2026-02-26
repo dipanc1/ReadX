@@ -131,6 +131,7 @@ export const HomeScreen: React.FC = () => {
   const renderPdfItem = ({ item }: { item: PdfDocument }) => {
     const progress = getProgress(item);
     const hasProgress = progress > 0 && progress < 100;
+    const isComplete = progress >= 100;
     return (
       <TouchableOpacity
         style={[
@@ -153,7 +154,7 @@ export const HomeScreen: React.FC = () => {
           </Text>
           <View style={styles.pdfMetaRow}>
             <Text style={[styles.pdfMeta, { color: colors.textSecondary }]}>
-              {formatDate(item.addedAt)}
+              {formatDate(item.lastReadAt || item.addedAt)}
             </Text>
             {item.lastPage ? (
               <View style={styles.pageBadge}>
@@ -161,6 +162,12 @@ export const HomeScreen: React.FC = () => {
                 <Text style={[styles.pageText, { color: colors.primary }]}> p.{item.lastPage}</Text>
               </View>
             ) : null}
+            {isComplete && (
+              <View style={styles.pageBadge}>
+                <Ionicons name="checkmark-circle" size={12} color="#34D399" />
+                <Text style={[styles.pageText, { color: '#34D399' }]}> Done</Text>
+              </View>
+            )}
           </View>
           {hasProgress && (
             <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F0FF' }]}>

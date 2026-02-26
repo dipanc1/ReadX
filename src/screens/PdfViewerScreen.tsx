@@ -28,6 +28,7 @@ export const PdfViewerScreen: React.FC = () => {
   const { pdf } = route.params;
   const webViewRef = useRef<WebView>(null);
   const colors = theme.colors;
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +93,11 @@ export const PdfViewerScreen: React.FC = () => {
           setModalVisible(true);
         }
       } else if (message.type === 'pageChanged') {
-        updatePdfProgress(pdf.id, message.page, message.totalPages);
+        // Debounce progress saving — only write to storage after 1s of no page changes
+        if (progressTimer.current) clearTimeout(progressTimer.current);
+        progressTimer.current = setTimeout(() => {
+          updatePdfProgress(pdf.id, message.page, message.totalPages);
+        }, 1000);
       } else if (message.type === 'fullscreenChanged') {
         setIsFullscreen(message.isFullscreen);
         navigation.setOptions({
@@ -146,6 +151,8 @@ export const PdfViewerScreen: React.FC = () => {
           originWhitelist={['*']}
           allowFileAccess
           mixedContentMode="always"
+          cacheEnabled={true}
+          cacheMode="LOAD_DEFAULT"
           startInLoadingState
           renderLoading={() => (
             <View style={[styles.webviewLoading, { backgroundColor: colors.background }]}>
