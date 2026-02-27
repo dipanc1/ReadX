@@ -72,7 +72,7 @@ export const PdfViewerScreen: React.FC = () => {
       });
 
       // Generate HTML with embedded PDF data, resuming from last page
-      const html = getPdfViewerHtml(base64, pdf.lastPage || 1, pdf.name);
+      const html = getPdfViewerHtml(base64, pdf.lastPage || 1, pdf.name, StatusBar.currentHeight || 0);
       setHtmlContent(html);
     } catch (err: any) {
       setError(err?.message || 'Failed to load PDF');

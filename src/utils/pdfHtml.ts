@@ -3,8 +3,9 @@
  * inside a WebView. Each word in the text layer is made tappable
  * and sends a postMessage back to React Native.
  */
-export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfName: string = ''): string {
+export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfName: string = '', statusBarHeight: number = 0): string {
   const safeTitle = pdfName.replace(/'/g, "\\'").replace('.pdf', '');
+  const sbH = Math.round(statusBarHeight);
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -27,13 +28,13 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 72px;
+      height: ${72 + sbH}px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 100;
-      padding: 0 12px;
+      padding: ${sbH}px 12px 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
@@ -83,14 +84,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     /* ─── Search bar ─── */
     #searchBar {
       position: fixed;
-      top: -78px; left: 0; right: 0;
-      height: 72px;
+      top: -${78 + sbH}px; left: 0; right: 0;
+      height: ${72 + sbH}px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 101;
-      padding: 0 12px;
+      padding: ${sbH}px 12px 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: top 0.3s ease;
     }
@@ -139,7 +140,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
     /* ─── Container ─── */
     #container {
-      margin-top: 78px;
+      margin-top: ${78 + sbH}px;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
     }
@@ -564,7 +565,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     function scrollToPage(num, smooth) {
       const el = document.getElementById('page-' + num);
       if (!el) return;
-      const toolbarH = 78;
+      const toolbarH = ${78 + sbH};
       const top = el.offsetTop - toolbarH;
       window.scrollTo({ top: Math.max(0, top), behavior: smooth !== false ? 'smooth' : 'instant' });
     }
