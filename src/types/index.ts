@@ -83,4 +83,8 @@ export interface WebViewFullscreenMessage {
   isFullscreen: boolean;
 }
 
-export type WebViewMessage = WebViewWordMessage | WebViewPageMessage | WebViewFullscreenMessage;
+export interface WebViewGoBackMessage {
+  type: 'goBack';
+}
+
+export type WebViewMessage = WebViewWordMessage | WebViewPageMessage | WebViewFullscreenMessage | WebViewGoBackMessage;

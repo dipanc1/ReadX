@@ -54,7 +54,6 @@ export const PdfViewerScreen: React.FC = () => {
           `if (typeof toggleFullscreen === 'function') toggleFullscreen(); true;`
         );
         setIsFullscreen(false);
-        navigation.setOptions({ headerShown: true });
         return true; // prevent default back navigation
       }
       return false; // let default back navigation happen
@@ -73,7 +72,7 @@ export const PdfViewerScreen: React.FC = () => {
       });
 
       // Generate HTML with embedded PDF data, resuming from last page
-      const html = getPdfViewerHtml(base64, pdf.lastPage || 1);
+      const html = getPdfViewerHtml(base64, pdf.lastPage || 1, pdf.name);
       setHtmlContent(html);
     } catch (err: any) {
       setError(err?.message || 'Failed to load PDF');
@@ -100,9 +99,8 @@ export const PdfViewerScreen: React.FC = () => {
         }, 1000);
       } else if (message.type === 'fullscreenChanged') {
         setIsFullscreen(message.isFullscreen);
-        navigation.setOptions({
-          headerShown: !message.isFullscreen,
-        });
+      } else if (message.type === 'goBack') {
+        navigation.goBack();
       }
     } catch {
       // Invalid message, ignore

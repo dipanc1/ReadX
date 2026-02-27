@@ -3,7 +3,8 @@
  * inside a WebView. Each word in the text layer is made tappable
  * and sends a postMessage back to React Native.
  */
-export function getPdfViewerHtml(base64Data: string, startPage: number = 1): string {
+export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfName: string = ''): string {
+  const safeTitle = pdfName.replace(/'/g, "\\'").replace('.pdf', '');
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -26,18 +27,38 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 52px;
+      height: 60px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
+      gap: 6px;
       z-index: 100;
-      padding: 0 12px;
+      padding: 0 8px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
     #toolbar.hidden { transform: translateY(-100%); }
+
+    #backBtn {
+      background: none; border: none; color: #E2E8F0;
+      padding: 6px; display: flex; align-items: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    #backBtn:active { opacity: 0.6; }
+
+    #pdfTitle {
+      color: #E2E8F0; font-size: 14px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 1; min-width: 0;
+      letter-spacing: 0.2px;
+    }
+
+    .tb-divider {
+      width: 1px; height: 24px;
+      background: rgba(255,255,255,0.1);
+      margin: 0 2px; flex-shrink: 0;
+    }
 
     .tb-btn {
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
@@ -63,8 +84,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       transition: background 0.2s;
     }
     #pageInfo:active { background: rgba(99, 102, 241, 0.15); }
-
-    .tb-spacer { flex: 1; }
 
     /* ─── Search bar ─── */
     #searchBar {
@@ -117,24 +136,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ─── Floating restore button ─── */
-    #restoreBtn {
-      position: fixed; top: 48px; right: 10px;
-      width: 40px; height: 40px;
-      background: rgba(30, 41, 59, 0.92);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      border-radius: 12px;
-      color: #818CF8; font-size: 20px;
-      display: none; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 120;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      -webkit-tap-highlight-color: transparent;
-    }
-    #restoreBtn.show { display: flex; }
-
     /* ─── Container ─── */
     #container {
-      margin-top: 60px;
+      margin-top: 68px;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
       transition: margin-top 0.3s ease;
@@ -253,18 +257,20 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
   </div>
 
   <div id="toolbar">
-    <button class="tb-btn" id="prevBtn" onclick="prevPage()">&#9664;</button>
-    <span id="pageInfo" onclick="openGoToPage()">-</span>
-    <button class="tb-btn" id="nextBtn" onclick="nextPage()">&#9654;</button>
-    <span class="tb-spacer"></span>
-    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    <button id="backBtn" onclick="goBack()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
       </svg>
     </button>
-    <button class="tb-btn tb-btn-ghost" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle toolbar">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path id="fsIcon" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+    <span id="pdfTitle">${safeTitle}</span>
+    <div class="tb-divider"></div>
+    <button class="tb-btn" id="prevBtn" onclick="prevPage()" style="padding:6px 10px;min-width:32px;">&#9664;</button>
+    <span id="pageInfo" onclick="openGoToPage()" style="min-width:auto;padding:4px 6px;font-size:13px;">-</span>
+    <button class="tb-btn" id="nextBtn" onclick="nextPage()" style="padding:6px 10px;min-width:32px;">&#9654;</button>
+    <div class="tb-divider"></div>
+    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search" style="padding:6px 8px;min-width:32px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
     </button>
   </div>
@@ -277,12 +283,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     <button class="search-nav-btn" onclick="searchNext()">&#9660;</button>
     <button class="search-close-btn" onclick="closeSearch()">&#10005;</button>
   </div>
-
-  <button id="restoreBtn" onclick="toggleFullscreen()">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
-    </svg>
-  </button>
 
   <div id="container"></div>
 
@@ -316,6 +316,10 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let totalPages = 0;
     let rendering = false;
     let isFullscreen = false;
+    let autoFullscreen = false; // tracks auto-hide triggered by scroll
+    let lastScrollY = 0;
+    let scrollDelta = 0;
+    const SCROLL_THRESHOLD = 30; // px of scroll before toggling
     // Render at native DPR with a floor of 3× for crisp text on all devices
     const DPR = Math.max(window.devicePixelRatio || 2, 3);
     const renderedPages = new Set();
@@ -359,6 +363,9 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
           await renderPage(p);
           await new Promise(r => setTimeout(r, 0));
         }
+
+        // 3. Re-anchor scroll — nearby pages inserted above may have shifted layout
+        scrollToPage(START_PAGE, false);
 
       } catch (err) {
         document.getElementById('loading').innerHTML =
@@ -541,7 +548,10 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
     function scrollToPage(num, smooth) {
       const el = document.getElementById('page-' + num);
-      if (el) el.scrollIntoView({ behavior: smooth !== false ? 'smooth' : 'instant', block: 'start' });
+      if (!el) return;
+      const toolbarH = 68; // toolbar height + container margin gap
+      const top = el.offsetTop - toolbarH;
+      window.scrollTo({ top: Math.max(0, top), behavior: smooth !== false ? 'smooth' : 'instant' });
     }
 
     /* ─── Go-to-page ─── */
@@ -578,12 +588,32 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       document.getElementById('gotoOverlay').classList.remove('show');
     }
 
+    /* ─── Go back to home ─── */
+    function goBack() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'goBack' }));
+    }
+
     /* ─── Fullscreen toggle ─── */
     function toggleFullscreen() {
       isFullscreen = !isFullscreen;
+      autoFullscreen = false; // manual toggle resets auto state
+      applyFullscreenState();
+    }
+
+    function setAutoFullscreen(enterFullscreen) {
+      if (searchOpen) return; // don't auto-toggle during search
+      if (enterFullscreen === isFullscreen) return; // already in desired state
+      isFullscreen = enterFullscreen;
+      autoFullscreen = enterFullscreen;
+      // Only toggle WebView toolbar — don't notify RN (avoids re-renders & lag)
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
       document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
-      document.getElementById('restoreBtn').classList.toggle('show', isFullscreen);
+    }
+
+    function applyFullscreenState() {
+      document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
+      document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
+      // Only manual toggles notify RN (for StatusBar / BackHandler)
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'fullscreenChanged',
         isFullscreen: isFullscreen
@@ -595,7 +625,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
       searchOpen = true;
       document.getElementById('searchBar').classList.add('show');
       document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('container').style.marginTop = '60px';
+      document.getElementById('container').style.marginTop = '68px';
       setTimeout(() => document.getElementById('searchInput').focus(), 150);
     }
 
@@ -798,6 +828,26 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
     let scrollTimeout;
     let scrollRenderAbort = 0; // incremented to cancel stale scroll renders
     window.addEventListener('scroll', () => {
+      /* ─── Auto-fullscreen on scroll direction ─── */
+      const sy = window.scrollY;
+      const delta = sy - lastScrollY;
+      // Accumulate in same direction, reset on direction change
+      if ((delta > 0 && scrollDelta > 0) || (delta < 0 && scrollDelta < 0)) {
+        scrollDelta += delta;
+      } else {
+        scrollDelta = delta;
+      }
+      lastScrollY = sy;
+
+      if (scrollDelta > SCROLL_THRESHOLD && !isFullscreen) {
+        setAutoFullscreen(true);
+        scrollDelta = 0;
+      } else if (scrollDelta < -SCROLL_THRESHOLD && isFullscreen && autoFullscreen) {
+        setAutoFullscreen(false);
+        scrollDelta = 0;
+      }
+
+      /* ─── Page tracking & rendering ─── */
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(async () => {
         const pages = document.querySelectorAll('.page-wrapper');
@@ -806,7 +856,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1): str
 
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
-          const dist = Math.abs(rect.top - 60);
+          const dist = Math.abs(rect.top - 68);
           if (dist < closestDist) {
             closestDist = dist;
             closest = parseInt(page.id.split('-')[1]);

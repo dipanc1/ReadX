@@ -106,21 +106,7 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="PdfViewer"
           component={PdfViewerScreen}
-          options={({ route }) => ({
-            title: route.params.pdf.name.replace('.pdf', ''),
-            headerBackTitle: 'Back',
-            headerStyle: {
-              backgroundColor: '#0F172A',
-            },
-            headerTintColor: '#E2E8F0',
-            headerTitleStyle: {
-              fontWeight: '700',
-              fontSize: 16,
-              letterSpacing: 0.2,
-              color: '#E2E8F0',
-            },
-            headerShadowVisible: false,
-          })}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
