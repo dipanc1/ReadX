@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
   },
   phonetic: { fontSize: 13, fontWeight: '600' },
   closeBtn: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

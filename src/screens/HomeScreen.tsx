@@ -276,15 +276,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 52 : 62,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
+    paddingBottom: 14,
   },
   headerLeft: {},
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   logoMark: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -292,11 +292,11 @@ const styles = StyleSheet.create({
       ios: { shadowColor: '#6366F1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10 },
     }),
   },
-  brandName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
+  brandName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
 
   themeBtn: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -317,8 +317,8 @@ const styles = StyleSheet.create({
   uploadInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     gap: 14,
   },
   uploadIconWrap: {
@@ -368,8 +368,8 @@ const styles = StyleSheet.create({
     }),
   },
   pdfIconWrap: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',

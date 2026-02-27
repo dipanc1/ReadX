@@ -37,7 +37,7 @@ const HomeTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopWidth: 0,
-          height: 62,
+          height: 64,
           paddingBottom: Platform.OS === 'android' ? 8 : 22,
           paddingTop: 8,
           ...Platform.select({

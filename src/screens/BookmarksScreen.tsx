@@ -79,7 +79,7 @@ export const BookmarksScreen: React.FC = () => {
               onPress={() => handleGoogleSearch(item.word)}
               activeOpacity={0.6}
             >
-              <Ionicons name="search" size={14} color={colors.primary} />
+              <Ionicons name="search" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
@@ -136,7 +136,7 @@ export const BookmarksScreen: React.FC = () => {
         <View style={styles.headerLeft}>
           <View style={styles.headerIconRow}>
             <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
-              <Ionicons name="bookmark" size={16} color="#FFF" />
+              <Ionicons name="bookmark" size={20} color="#FFF" />
             </View>
             <Text style={[styles.title, { color: colors.text }]}>Vocabulary</Text>
           </View>
@@ -179,19 +179,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 48 : 60,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'android' ? 50 : 60,
+    paddingBottom: 14,
   },
   headerLeft: {},
-  headerIconRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  headerIconRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   headerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.8 },
+  title: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, marginLeft: 1, letterSpacing: 0.1 },
 
   list: { paddingHorizontal: 20, paddingBottom: 100 },
@@ -215,9 +215,9 @@ const styles = StyleSheet.create({
   word: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   phonetic: { fontSize: 13, marginTop: 2 },
   searchBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,

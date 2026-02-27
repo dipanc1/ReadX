@@ -61,36 +61,31 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     }
 
     .tb-btn {
-      background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-      color: white; border: none; border-radius: 12px;
-      padding: 12px 18px; font-size: 16px; cursor: pointer;
-      min-width: 44px;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      background: rgba(255,255,255,0.06);
+      color: #CBD5E1; border: none; border-radius: 12px;
+      width: 36px; height: 36px; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
     }
-    .tb-btn:active { transform: scale(0.94); }
-    .tb-btn:disabled { opacity: 0.3; box-shadow: none; }
-
-    .tb-btn-ghost {
-      background: rgba(255,255,255,0.08);
-      box-shadow: none; padding: 12px 14px; min-width: 44px;
-    }
+    .tb-btn:active { background: rgba(99, 102, 241, 0.18); }
+    .tb-btn:disabled { opacity: 0.2; }
 
     #pageInfo {
-      color: #CBD5E1; font-size: 16px; font-weight: 600;
-      min-width: 85px; text-align: center; letter-spacing: 0.5px;
-      cursor: pointer; padding: 10px 14px; border-radius: 10px;
-      transition: background 0.2s;
+      color: #CBD5E1; font-size: 14px; font-weight: 600;
+      min-width: 72px; text-align: center; letter-spacing: 0.3px;
+      cursor: pointer; padding: 8px 10px; border-radius: 10px;
+      transition: background 0.15s;
     }
-    #pageInfo:active { background: rgba(99, 102, 241, 0.15); }
+    #pageInfo:active { background: rgba(99, 102, 241, 0.12); }
 
     /* ─── Search bar ─── */
     #searchBar {
       position: fixed;
-      top: -56px; left: 0; right: 0;
-      height: 52px;
-      background: #1E293B;
+      top: -78px; left: 0; right: 0;
+      height: 72px;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -104,37 +99,43 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     #searchInput {
       flex: 1;
       background: #0F172A;
-      border: 1.5px solid rgba(99, 102, 241, 0.2);
-      border-radius: 10px;
-      padding: 9px 14px;
+      border: 1.5px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 10px 14px;
       color: #F1F5F9;
       font-size: 15px;
       outline: none;
       -webkit-appearance: none;
+      transition: border-color 0.15s;
     }
     #searchInput:focus { border-color: #6366F1; }
     #searchInput::placeholder { color: #475569; }
 
     #searchInfo {
       color: #64748B; font-size: 12px; font-weight: 600;
-      min-width: 44px; text-align: center;
+      min-width: 40px; text-align: center;
     }
 
     .search-nav-btn {
-      background: rgba(255,255,255,0.08);
-      color: #CBD5E1; border: none; border-radius: 8px;
-      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.06);
+      color: #CBD5E1; border: none; border-radius: 10px;
+      width: 34px; height: 34px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 14px;
+      cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
     }
-    .search-nav-btn:active { background: rgba(99, 102, 241, 0.2); }
+    .search-nav-btn:active { background: rgba(99, 102, 241, 0.18); }
 
     .search-close-btn {
-      background: none; border: none; color: #94A3B8;
-      font-size: 18px; cursor: pointer; padding: 4px 8px;
+      background: rgba(255,255,255,0.06); border: none; color: #94A3B8;
+      width: 34px; height: 34px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
     }
+    .search-close-btn:active { background: rgba(239, 68, 68, 0.15); color: #F87171; }
 
     /* ─── Container ─── */
     #container {
@@ -262,12 +263,16 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     </button>
     <span id="pdfTitle">${safeTitle}</span>
     <div class="tb-divider"></div>
-    <button class="tb-btn" id="prevBtn" onclick="prevPage()">&#9664;</button>
+    <button class="tb-btn" id="prevBtn" onclick="prevPage()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
     <span id="pageInfo" onclick="openGoToPage()">-</span>
-    <button class="tb-btn" id="nextBtn" onclick="nextPage()">&#9654;</button>
+    <button class="tb-btn" id="nextBtn" onclick="nextPage()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
     <div class="tb-divider"></div>
-    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <button class="tb-btn" onclick="openSearch()" title="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
     </button>
@@ -277,9 +282,15 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
   <div id="searchBar">
     <input id="searchInput" type="text" placeholder="Search in document..." oninput="onSearchInput()" onkeydown="if(event.key==='Enter')searchNext()" />
     <span id="searchInfo"></span>
-    <button class="search-nav-btn" onclick="searchPrev()">&#9650;</button>
-    <button class="search-nav-btn" onclick="searchNext()">&#9660;</button>
-    <button class="search-close-btn" onclick="closeSearch()">&#10005;</button>
+    <button class="search-nav-btn" onclick="searchPrev()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+    </button>
+    <button class="search-nav-btn" onclick="searchNext()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <button class="search-close-btn" onclick="closeSearch()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
   </div>
 
   <div id="container"></div>
