@@ -27,13 +27,13 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 60px;
+      height: 72px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       z-index: 100;
-      padding: 0 8px;
+      padding: 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
@@ -41,30 +41,30 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
     #backBtn {
       background: none; border: none; color: #E2E8F0;
-      padding: 6px; display: flex; align-items: center;
+      padding: 10px; display: flex; align-items: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
     }
     #backBtn:active { opacity: 0.6; }
 
     #pdfTitle {
-      color: #E2E8F0; font-size: 14px; font-weight: 700;
+      color: #E2E8F0; font-size: 17px; font-weight: 700;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       flex: 1; min-width: 0;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.3px;
     }
 
     .tb-divider {
-      width: 1px; height: 24px;
+      width: 1px; height: 32px;
       background: rgba(255,255,255,0.1);
-      margin: 0 2px; flex-shrink: 0;
+      margin: 0 4px; flex-shrink: 0;
     }
 
     .tb-btn {
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-      color: white; border: none; border-radius: 10px;
-      padding: 8px 14px; font-size: 14px; cursor: pointer;
-      min-width: 38px;
+      color: white; border: none; border-radius: 12px;
+      padding: 12px 18px; font-size: 16px; cursor: pointer;
+      min-width: 44px;
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
       -webkit-tap-highlight-color: transparent;
       display: flex; align-items: center; justify-content: center;
@@ -74,13 +74,13 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
     .tb-btn-ghost {
       background: rgba(255,255,255,0.08);
-      box-shadow: none; padding: 8px 10px; min-width: 34px;
+      box-shadow: none; padding: 12px 14px; min-width: 44px;
     }
 
     #pageInfo {
-      color: #CBD5E1; font-size: 14px; font-weight: 600;
-      min-width: 80px; text-align: center; letter-spacing: 0.5px;
-      cursor: pointer; padding: 6px 10px; border-radius: 8px;
+      color: #CBD5E1; font-size: 16px; font-weight: 600;
+      min-width: 85px; text-align: center; letter-spacing: 0.5px;
+      cursor: pointer; padding: 10px 14px; border-radius: 10px;
       transition: background 0.2s;
     }
     #pageInfo:active { background: rgba(99, 102, 241, 0.15); }
@@ -138,12 +138,10 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
     /* ─── Container ─── */
     #container {
-      margin-top: 68px;
+      margin-top: 78px;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
-      transition: margin-top 0.3s ease;
     }
-    #container.fullscreen { margin-top: 8px; }
 
     .page-wrapper {
       position: relative; margin: 6px auto;
@@ -258,18 +256,18 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
   <div id="toolbar">
     <button id="backBtn" onclick="goBack()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 18l-6-6 6-6"/>
       </svg>
     </button>
     <span id="pdfTitle">${safeTitle}</span>
     <div class="tb-divider"></div>
-    <button class="tb-btn" id="prevBtn" onclick="prevPage()" style="padding:6px 10px;min-width:32px;">&#9664;</button>
-    <span id="pageInfo" onclick="openGoToPage()" style="min-width:auto;padding:4px 6px;font-size:13px;">-</span>
-    <button class="tb-btn" id="nextBtn" onclick="nextPage()" style="padding:6px 10px;min-width:32px;">&#9654;</button>
+    <button class="tb-btn" id="prevBtn" onclick="prevPage()">&#9664;</button>
+    <span id="pageInfo" onclick="openGoToPage()">-</span>
+    <button class="tb-btn" id="nextBtn" onclick="nextPage()">&#9654;</button>
     <div class="tb-divider"></div>
-    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search" style="padding:6px 8px;min-width:32px;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <button class="tb-btn tb-btn-ghost" onclick="openSearch()" title="Search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
     </button>
@@ -317,6 +315,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     let rendering = false;
     let isFullscreen = false;
     let autoFullscreen = false; // tracks auto-hide triggered by scroll
+    let initDone = false; // suppress auto-fullscreen until initial load finishes
     let lastScrollY = 0;
     let scrollDelta = 0;
     const SCROLL_THRESHOLD = 30; // px of scroll before toggling
@@ -366,6 +365,11 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
         // 3. Re-anchor scroll — nearby pages inserted above may have shifted layout
         scrollToPage(START_PAGE, false);
+
+        // 4. Now allow auto-fullscreen on scroll
+        lastScrollY = window.scrollY;
+        scrollDelta = 0;
+        initDone = true;
 
       } catch (err) {
         document.getElementById('loading').innerHTML =
@@ -549,7 +553,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     function scrollToPage(num, smooth) {
       const el = document.getElementById('page-' + num);
       if (!el) return;
-      const toolbarH = 68; // toolbar height + container margin gap
+      const toolbarH = 78;
       const top = el.offsetTop - toolbarH;
       window.scrollTo({ top: Math.max(0, top), behavior: smooth !== false ? 'smooth' : 'instant' });
     }
@@ -601,18 +605,17 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     }
 
     function setAutoFullscreen(enterFullscreen) {
+      if (!initDone) return; // don't auto-toggle during initial load
       if (searchOpen) return; // don't auto-toggle during search
       if (enterFullscreen === isFullscreen) return; // already in desired state
       isFullscreen = enterFullscreen;
       autoFullscreen = enterFullscreen;
       // Only toggle WebView toolbar — don't notify RN (avoids re-renders & lag)
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
-      document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
     }
 
     function applyFullscreenState() {
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
-      document.getElementById('container').classList.toggle('fullscreen', isFullscreen);
       // Only manual toggles notify RN (for StatusBar / BackHandler)
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'fullscreenChanged',
@@ -625,7 +628,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       searchOpen = true;
       document.getElementById('searchBar').classList.add('show');
       document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('container').style.marginTop = '68px';
+      document.getElementById('container').style.marginTop = '78px';
       setTimeout(() => document.getElementById('searchInput').focus(), 150);
     }
 
@@ -636,12 +639,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       if (!isFullscreen) {
         document.getElementById('toolbar').classList.remove('hidden');
       }
-      // Respect fullscreen state when restoring margin
-      if (isFullscreen) {
-        document.getElementById('container').style.marginTop = '8px';
-      } else {
-        document.getElementById('container').style.marginTop = '';
-      }
+      document.getElementById('container').style.marginTop = '';
       document.getElementById('searchInput').value = '';
       document.getElementById('searchInfo').textContent = '';
       clearSearchHighlights();
@@ -856,7 +854,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
-          const dist = Math.abs(rect.top - 68);
+          const dist = Math.abs(rect.top - 78);
           if (dist < closestDist) {
             closestDist = dist;
             closest = parseInt(page.id.split('-')[1]);
