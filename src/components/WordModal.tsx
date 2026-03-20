@@ -7,12 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Linking,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { lookupWord, LookupResult } from '../services/dictionaryService';
+import { lookupWord } from '../services/dictionaryService';
+import { InAppBrowser } from './InAppBrowser';
 import { addBookmark, isWordBookmarked } from '../services/storageService';
 import { DictionaryEntry, BookmarkedWord } from '../types';
 
@@ -35,8 +35,9 @@ export const WordModal: React.FC<WordModalProps> = ({
   const [error, setError] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [browserVisible, setBrowserVisible] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState('');
   const colors = theme.colors;
-  const isDark = theme.mode === 'dark';
 
   useEffect(() => {
     if (visible && word) {
@@ -81,12 +82,14 @@ export const WordModal: React.FC<WordModalProps> = ({
 
   const handleGoogleSearch = () => {
     const url = `https://www.google.com/search?q=define+${encodeURIComponent(word)}`;
-    Linking.openURL(url);
+    setBrowserUrl(url);
+    setBrowserVisible(true);
   };
 
   const cleanWord = word?.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -103,18 +106,18 @@ export const WordModal: React.FC<WordModalProps> = ({
         >
           {/* Handle */}
           <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#D1D5DB' }]} />
+            <View style={[styles.handle, { backgroundColor: 'rgba(255,255,255,0.12)' }]} />
           </View>
 
           {/* Header */}
-          <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+          <View style={[styles.header, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
             <View style={styles.headerLeft}>
               <View style={styles.wordRow}>
                 <View style={[styles.wordAccent, { backgroundColor: colors.primary }]} />
                 <Text style={[styles.word, { color: colors.text }]}>{cleanWord}</Text>
               </View>
               {entry?.phonetics?.find((p) => p.text) && (
-                <View style={[styles.phoneticChip, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+                <View style={[styles.phoneticChip, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
                   <Ionicons name="volume-medium-outline" size={13} color={colors.primary} />
                   <Text style={[styles.phonetic, { color: colors.primary }]}>
                     {entry.phonetics.find((p) => p.text)?.text}
@@ -124,7 +127,7 @@ export const WordModal: React.FC<WordModalProps> = ({
             </View>
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9' }]}
+              style={[styles.closeBtn, { backgroundColor: 'rgba(255,255,255,0.07)' }]}
               activeOpacity={0.6}
             >
               <Ionicons name="close" size={18} color={colors.textSecondary} />
@@ -144,7 +147,7 @@ export const WordModal: React.FC<WordModalProps> = ({
 
             {error && !loading && (
               <View style={styles.centered}>
-                <View style={[styles.errCircle, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
+                <View style={[styles.errCircle, { backgroundColor: 'rgba(129,140,248,0.08)' }]}>
                   <Ionicons name="search-outline" size={34} color={colors.primary} />
                 </View>
                 <Text style={[styles.errTitle, { color: colors.text }]}>Word not found</Text>
@@ -164,7 +167,7 @@ export const WordModal: React.FC<WordModalProps> = ({
 
             {networkError && !loading && (
               <View style={styles.centered}>
-                <View style={[styles.errCircle, { backgroundColor: isDark ? 'rgba(248,113,113,0.08)' : '#FEF2F2' }]}>
+                <View style={[styles.errCircle, { backgroundColor: 'rgba(248,113,113,0.08)' }]}>
                   <Ionicons name="cloud-offline-outline" size={34} color={colors.error} />
                 </View>
                 <Text style={[styles.errTitle, { color: colors.text }]}>No internet connection</Text>
@@ -186,7 +189,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               <>
                 {entry.meanings.map((meaning, idx) => (
                   <View key={idx} style={styles.meaningSection}>
-                    <View style={[styles.posChip, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+                    <View style={[styles.posChip, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
                       <Text style={[styles.posLabel, { color: colors.primary }]}>
                         {meaning.partOfSpeech}
                       </Text>
@@ -200,7 +203,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                             {def.definition}
                           </Text>
                           {def.example && (
-                            <View style={[styles.exampleBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA' }]}>
+                            <View style={[styles.exampleBox, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
                               <Ionicons name="chatbubble-outline" size={11} color={colors.textSecondary} style={{ marginTop: 3 }} />
                               <Text style={[styles.exampleText, { color: colors.textSecondary }]}>
                                 {def.example}
@@ -216,7 +219,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                         <Text style={[styles.synTitle, { color: colors.textSecondary }]}>SYNONYMS</Text>
                         <View style={styles.synRow}>
                           {meaning.synonyms.slice(0, 5).map((syn, sIdx) => (
-                            <View key={sIdx} style={[styles.synTag, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
+                            <View key={sIdx} style={[styles.synTag, { backgroundColor: 'rgba(129,140,248,0.08)' }]}>
                               <Text style={[styles.synTagText, { color: colors.primary }]}>{syn}</Text>
                             </View>
                           ))}
@@ -231,13 +234,13 @@ export const WordModal: React.FC<WordModalProps> = ({
 
           {/* Footer actions */}
           {entry && !loading && (
-            <View style={[styles.footer, { borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+            <View style={[styles.footer, { borderTopColor: 'rgba(255,255,255,0.06)' }]}>
               <TouchableOpacity
                 style={[
                   styles.mainAction,
                   {
                     backgroundColor: bookmarked
-                      ? (isDark ? 'rgba(52,211,153,0.12)' : '#ECFDF5')
+                      ? ('rgba(52,211,153,0.12)')
                       : colors.primary,
                   },
                 ]}
@@ -256,7 +259,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.secondaryAction, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9' }]}
+                style={[styles.secondaryAction, { backgroundColor: 'rgba(255,255,255,0.07)' }]}
                 onPress={handleGoogleSearch}
                 activeOpacity={0.6}
               >
@@ -267,6 +270,13 @@ export const WordModal: React.FC<WordModalProps> = ({
         </View>
       </View>
     </Modal>
+
+    <InAppBrowser
+      visible={browserVisible}
+      url={browserUrl}
+      onClose={() => setBrowserVisible(false)}
+    />
+    </>
   );
 };
 

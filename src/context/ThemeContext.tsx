@@ -1,25 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppTheme, ThemeMode } from '../types';
-
-const THEME_KEY = '@readx_theme';
-
-const lightTheme: AppTheme = {
-  mode: 'light',
-  colors: {
-    background: '#F8FAFC',
-    surface: '#FFFFFF',
-    card: '#FFFFFF',
-    text: '#0F172A',
-    textSecondary: '#64748B',
-    primary: '#6366F1',
-    primaryLight: '#EEF2FF',
-    border: '#E2E8F0',
-    error: '#EF4444',
-    accent: '#F59E0B',
-    modalOverlay: 'rgba(15, 23, 42, 0.5)',
-  },
-};
+import React, { createContext, useContext, ReactNode } from 'react';
+import type { AppTheme } from '../types';
 
 const darkTheme: AppTheme = {
   mode: 'dark',
@@ -40,12 +20,10 @@ const darkTheme: AppTheme = {
 
 interface ThemeContextType {
   theme: AppTheme;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: lightTheme,
-  toggleTheme: () => {},
+  theme: darkTheme,
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -55,26 +33,8 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [mode, setMode] = useState<ThemeMode>('light');
-
-  useEffect(() => {
-    AsyncStorage.getItem(THEME_KEY).then((saved) => {
-      if (saved === 'dark' || saved === 'light') {
-        setMode(saved);
-      }
-    });
-  }, []);
-
-  const toggleTheme = () => {
-    const next = mode === 'light' ? 'dark' : 'light';
-    setMode(next);
-    AsyncStorage.setItem(THEME_KEY, next);
-  };
-
-  const theme = mode === 'light' ? lightTheme : darkTheme;
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: darkTheme }}>
       {children}
     </ThemeContext.Provider>
   );

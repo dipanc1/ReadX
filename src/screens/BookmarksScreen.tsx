@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Linking,
   StatusBar,
   Platform,
 } from 'react-native';
@@ -14,13 +13,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { getBookmarks, removeBookmark } from '../services/storageService';
+import { InAppBrowser } from '../components/InAppBrowser';
 import { BookmarkedWord } from '../types';
 
 export const BookmarksScreen: React.FC = () => {
   const { theme } = useTheme();
   const [bookmarks, setBookmarks] = useState<BookmarkedWord[]>([]);
+  const [browserVisible, setBrowserVisible] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState('');
   const colors = theme.colors;
-  const isDark = theme.mode === 'dark';
 
   useFocusEffect(
     useCallback(() => {
@@ -49,7 +50,8 @@ export const BookmarksScreen: React.FC = () => {
 
   const handleGoogleSearch = (word: string) => {
     const url = `https://www.google.com/search?q=define+${encodeURIComponent(word)}`;
-    Linking.openURL(url);
+    setBrowserUrl(url);
+    setBrowserVisible(true);
   };
 
   const renderBookmark = ({ item }: { item: BookmarkedWord }) => {
@@ -75,7 +77,7 @@ export const BookmarksScreen: React.FC = () => {
               )}
             </View>
             <TouchableOpacity
-              style={[styles.searchBtn, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}
+              style={[styles.searchBtn, { backgroundColor: 'rgba(129,140,248,0.1)' }]}
               onPress={() => handleGoogleSearch(item.word)}
               activeOpacity={0.6}
             >
@@ -84,7 +86,7 @@ export const BookmarksScreen: React.FC = () => {
           </View>
 
           {firstMeaning && (
-            <View style={[styles.posChip, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+            <View style={[styles.posChip, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
               <Text style={[styles.posText, { color: colors.primary }]}>
                 {firstMeaning.partOfSpeech}
               </Text>
@@ -98,7 +100,7 @@ export const BookmarksScreen: React.FC = () => {
           )}
 
           {firstDef?.example && (
-            <View style={[styles.exampleWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFA' }]}>
+            <View style={[styles.exampleWrap, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
               <Ionicons name="chatbubble-outline" size={12} color={colors.textSecondary} style={{ marginTop: 2 }} />
               <Text style={[styles.example, { color: colors.textSecondary }]} numberOfLines={2}>
                 {firstDef.example}
@@ -106,7 +108,7 @@ export const BookmarksScreen: React.FC = () => {
             </View>
           )}
 
-          <View style={[styles.cardFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
+          <View style={[styles.cardFooter, { borderTopColor: 'rgba(255,255,255,0.05)' }]}>
             {item.pdfName ? (
               <View style={styles.sourceRow}>
                 <Ionicons name="document-text-outline" size={12} color={colors.textSecondary} />
@@ -125,9 +127,10 @@ export const BookmarksScreen: React.FC = () => {
   };
 
   return (
+    <>
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        barStyle="light-content"
         backgroundColor={colors.background}
       />
 
@@ -156,7 +159,7 @@ export const BookmarksScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: 'rgba(129,140,248,0.08)' }]}>
             <Ionicons name="bookmark-outline" size={40} color={colors.primary} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
@@ -168,6 +171,13 @@ export const BookmarksScreen: React.FC = () => {
         </View>
       )}
     </View>
+
+    <InAppBrowser
+      visible={browserVisible}
+      url={browserUrl}
+      onClose={() => setBrowserVisible(false)}
+    />
+    </>
   );
 };
 

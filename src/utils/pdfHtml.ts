@@ -156,6 +156,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     .text-layer {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .text-layer span {
@@ -163,6 +165,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       cursor: pointer; white-space: pre; overflow: hidden;
       transform-origin: 0 0;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
       border-radius: 2px;
     }
     .text-layer span:active { background: rgba(99, 102, 241, 0.15); }
@@ -514,8 +518,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
               type: 'wordTapped',
               word: word
             }));
-            // Auto-remove highlight after 5 seconds as fallback
-            setTimeout(() => span.classList.remove('word-highlight'), 5000);
           });
 
           textDiv.appendChild(span);

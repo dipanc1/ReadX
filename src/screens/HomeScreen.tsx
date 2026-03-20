@@ -24,12 +24,11 @@ type RootStackParamList = {
 };
 
 export const HomeScreen: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [pdfs, setPdfs] = useState<PdfDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const colors = theme.colors;
-  const isDark = theme.mode === 'dark';
 
   useFocusEffect(
     useCallback(() => {
@@ -143,7 +142,7 @@ export const HomeScreen: React.FC = () => {
         activeOpacity={0.65}
       >
         {/* Left icon */}
-        <View style={[styles.pdfIconWrap, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+        <View style={[styles.pdfIconWrap, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
           <Ionicons name="document-text" size={24} color={colors.primary} />
         </View>
 
@@ -170,7 +169,7 @@ export const HomeScreen: React.FC = () => {
             )}
           </View>
           {hasProgress && (
-            <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F0FF' }]}>
+            <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
               <View
                 style={[styles.progressFill, { width: `${progress}%`, backgroundColor: colors.primary }]}
               />
@@ -187,7 +186,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        barStyle="light-content"
         backgroundColor={colors.background}
       />
 
@@ -203,13 +202,6 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-        <TouchableOpacity
-          onPress={toggleTheme}
-          style={[styles.themeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9' }]}
-          activeOpacity={0.6}
-        >
-          <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={isDark ? '#FBBF24' : '#6366F1'} />
-        </TouchableOpacity>
       </View>
 
       {/* Upload area */}
@@ -240,7 +232,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               RECENT
             </Text>
-            <View style={[styles.countPill, { backgroundColor: isDark ? 'rgba(129,140,248,0.1)' : '#F0EEFF' }]}>
+            <View style={[styles.countPill, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
               <Text style={[styles.countNum, { color: colors.primary }]}>{pdfs.length}</Text>
             </View>
           </View>
@@ -254,7 +246,7 @@ export const HomeScreen: React.FC = () => {
         </>
       ) : (
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(129,140,248,0.08)' : '#F0EEFF' }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: 'rgba(129,140,248,0.08)' }]}>
             <Ionicons name="library-outline" size={40} color={colors.primary} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No documents yet</Text>
@@ -293,14 +285,6 @@ const styles = StyleSheet.create({
     }),
   },
   brandName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
-
-  themeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   /* Upload */
   uploadBtn: {

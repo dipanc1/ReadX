@@ -28,7 +28,6 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const HomeTabs: React.FC = () => {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const isDark = theme.mode === 'dark';
 
   return (
     <Tab.Navigator
@@ -51,7 +50,7 @@ const HomeTabs: React.FC = () => {
           }),
         },
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: isDark ? 'rgba(255,255,255,0.35)' : '#94A3B8',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.35)',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',

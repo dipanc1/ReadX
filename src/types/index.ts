@@ -47,10 +47,8 @@ export interface BookmarkedWord {
 }
 
 // ─── Theme ──────────────────────────────────────────────────
-export type ThemeMode = 'light' | 'dark';
-
 export interface AppTheme {
-  mode: ThemeMode;
+  mode: 'dark';
   colors: {
     background: string;
     surface: string;
