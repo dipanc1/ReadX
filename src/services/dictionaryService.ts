@@ -10,7 +10,6 @@ export type LookupResult =
 export async function lookupWord(
   word: string
 ): Promise<LookupResult> {
-  // Clean the word: remove punctuation, trim whitespace
   const cleaned = word.replace(/[^a-zA-Z'-]/g, '').trim().toLowerCase();
 
   if (!cleaned || cleaned.length < 2) {

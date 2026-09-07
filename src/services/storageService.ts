@@ -5,13 +5,10 @@ import { PdfDocument, BookmarkedWord } from '../types';
 const PDFS_KEY = '@readx_pdfs';
 const BOOKMARKS_KEY = '@readx_bookmarks';
 
-// ─── PDF History ────────────────────────────────────────────
-
 export async function getSavedPdfs(): Promise<PdfDocument[]> {
   try {
     const raw = await AsyncStorage.getItem(PDFS_KEY);
     const pdfs: PdfDocument[] = raw ? JSON.parse(raw) : [];
-    // Sort by most recently read/added first
     pdfs.sort((a, b) => (b.lastReadAt || b.addedAt) - (a.lastReadAt || a.addedAt));
     return pdfs;
   } catch {
@@ -53,7 +50,6 @@ export async function deletePdf(id: string): Promise<void> {
   const filtered = pdfs.filter((p) => p.id !== id);
   await AsyncStorage.setItem(PDFS_KEY, JSON.stringify(filtered));
 
-  // Also delete the actual PDF file from disk
   if (toDelete?.uri) {
     try {
       const info = await FileSystem.getInfoAsync(toDelete.uri);
@@ -61,12 +57,10 @@ export async function deletePdf(id: string): Promise<void> {
         await FileSystem.deleteAsync(toDelete.uri, { idempotent: true });
       }
     } catch {
-      // File might already be gone, that's fine
+      // Already gone is fine.
     }
   }
 }
-
-// ─── Bookmarked Words ───────────────────────────────────────
 
 export async function getBookmarks(): Promise<BookmarkedWord[]> {
   try {
@@ -79,7 +73,6 @@ export async function getBookmarks(): Promise<BookmarkedWord[]> {
 
 export async function addBookmark(bookmark: BookmarkedWord): Promise<void> {
   const bookmarks = await getBookmarks();
-  // Avoid duplicates (same word)
   const exists = bookmarks.some(
     (b) => b.word.toLowerCase() === bookmark.word.toLowerCase()
   );

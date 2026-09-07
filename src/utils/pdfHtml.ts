@@ -1,10 +1,27 @@
+import { escapeHtml, stripPdfExtension } from './filename';
+
 /**
  * Generates the HTML page that loads PDF.js and renders the PDF
  * inside a WebView. Each word in the text layer is made tappable
  * and sends a postMessage back to React Native.
+ *
+ * The PDF bytes are NOT embedded in this page. This HTML is written to disk
+ * alongside the PDF and loaded over file://, so PDF.js fetches the file itself
+ * and the bytes never pass through JS strings or the RN bridge — which is what
+ * used to make large documents exhaust memory and crash the app.
+ *
+ * @param pdfUrlSegment Final path segment of the PDF's URI — i.e. already
+ *                      URI-encoded — for a file sitting in the SAME directory as
+ *                      this HTML. Resolved as a relative URL against the page's
+ *                      own file:// location.
  */
-export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfName: string = '', statusBarHeight: number = 0): string {
-  const safeTitle = pdfName.replace(/'/g, "\\'").replace('.pdf', '');
+export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, pdfName: string = '', statusBarHeight: number = 0): string {
+  const safeTitle = escapeHtml(stripPdfExtension(pdfName));
+  // JSON.stringify produces the quotes too, and escapes anything that would
+  // otherwise break out of the JS string literal.
+  const pdfUrlLiteral = JSON.stringify(pdfUrlSegment);
+  const safeStartPage =
+    Number.isFinite(startPage) && startPage > 0 ? Math.floor(startPage) : 1;
   const sbH = Math.round(statusBarHeight);
   return `
 <!DOCTYPE html>
@@ -322,56 +339,125 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
   </div>
 
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // pdfjsLib comes from a CDN: offline it is undefined, and an unguarded
+    // assignment would throw before any of the code below could run.
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
 
     let pdfDoc = null;
-    let currentPage = ${startPage};
+    let currentPage = ${safeStartPage};
     let totalPages = 0;
-    let rendering = false;
     let isFullscreen = false;
-    let autoFullscreen = false; // tracks auto-hide triggered by scroll
-    let initDone = false; // suppress auto-fullscreen until initial load finishes
+    let autoFullscreen = false;
+    // Suppresses auto-fullscreen until the initial load settles.
+    let initDone = false;
     let lastScrollY = 0;
     let scrollDelta = 0;
-    const SCROLL_THRESHOLD = 30; // px of scroll before toggling
-    // Render at native DPR with a floor of 3× for crisp text on all devices
-    const DPR = Math.max(window.devicePixelRatio || 2, 3);
+    const SCROLL_THRESHOLD = 30;
+    // Capped at 2×: each extra 1× multiplies every page's canvas backing store
+    // (w × h × 4 bytes), and past 2× the gain is invisible on a phone.
+    const DPR = Math.min(window.devicePixelRatio || 2, 2);
     const renderedPages = new Set();
-    const START_PAGE = ${startPage};
+    const START_PAGE = ${safeStartPage};
 
-    // Search state
     let searchMatches = [];
     let currentMatchIdx = -1;
     let searchOpen = false;
     const pageTextCache = {};
 
-    // Measurement canvas for accurate proportional word positioning
+    // Measures character widths so word boxes line up with the rendered text.
     const _mc = document.createElement('canvas');
     const _mx = _mc.getContext('2d');
 
-    // Decode base64 PDF data
-    const pdfData = atob('${base64Data}');
-    const uint8Array = new Uint8Array(pdfData.length);
-    for (let i = 0; i < pdfData.length; i++) {
-      uint8Array[i] = pdfData.charCodeAt(i);
+    // Relative to this page's own file:// location — PDF.js fetches it via XHR.
+    const PDF_URL = ${pdfUrlLiteral};
+
+    function post(msg) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+      }
     }
 
-    async function init() {
+    // Built with textContent rather than innerHTML: detail carries PDF.js and
+    // native error strings, which are not ours to trust as markup.
+    function showFatal(title, detail) {
+      const el = document.getElementById('loading');
+      el.style.display = 'flex';
+      el.innerHTML = '';
+
+      const h = document.createElement('div');
+      h.style.cssText = 'color:#F87171;font-size:16px;font-weight:600;padding:0 32px;text-align:center';
+      h.textContent = title;
+      el.appendChild(h);
+
+      if (detail) {
+        const d = document.createElement('div');
+        d.style.cssText = 'color:#64748B;font-size:13px;margin-top:8px;padding:0 32px;text-align:center';
+        d.textContent = detail;
+        el.appendChild(d);
+      }
+    }
+
+    /**
+     * Fallback entry point, called from React Native via injectJavaScript if the
+     * file:// fetch above is refused. Keeps small PDFs working even where the
+     * WebView blocks file-to-file access.
+     */
+    window.__loadPdfFromBase64 = function (b64) {
       try {
-        pdfDoc = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        pdfjsLib.getDocument({ data: bytes }).promise.then(function (doc) {
+          pdfDoc = doc;
+          start();
+        }).catch(function (err) {
+          showFatal('Could not open this PDF', err && err.message);
+        });
+      } catch (err) {
+        showFatal('Could not open this PDF', err && err.message);
+      }
+    };
+
+    /** Called from React Native when the fallback is unavailable too. */
+    window.__pdfLoadFailed = function (detail) {
+      showFatal('Could not open this PDF', detail);
+    };
+
+    async function init() {
+      if (typeof pdfjsLib === 'undefined') {
+        showFatal('Couldn\\'t load the PDF engine', 'Check your internet connection and try again.');
+        post({ type: 'engineUnavailable' });
+        return;
+      }
+
+      // Only a failure to OPEN triggers the byte-transfer fallback; falling back
+      // on a render error would re-render pages that already exist.
+      try {
+        pdfDoc = await pdfjsLib.getDocument({ url: PDF_URL }).promise;
+      } catch (err) {
+        post({ type: 'urlLoadFailed', message: (err && err.message) || 'unknown' });
+        return;
+      }
+
+      start();
+    }
+
+    async function start() {
+      try {
         totalPages = pdfDoc.numPages;
         document.getElementById('loading').style.display = 'none';
         updatePageInfo();
 
-        // 1. Render the START page first so it's visible instantly
+        // The start page goes up first so something is visible immediately.
         await renderPage(START_PAGE);
         scrollToPage(START_PAGE, false);
         sendPageChange();
 
-        // 2. Lazily render nearby pages in the background
         const nearby = [];
-        for (let i = Math.max(1, START_PAGE - 3); i <= Math.min(START_PAGE + 3, totalPages); i++) {
+        for (let i = Math.max(1, START_PAGE - 2); i <= Math.min(START_PAGE + 2, totalPages); i++) {
           if (i !== START_PAGE) nearby.push(i);
         }
         for (const p of nearby) {
@@ -379,42 +465,46 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
           await new Promise(r => setTimeout(r, 0));
         }
 
-        // 3. Re-anchor scroll — nearby pages inserted above may have shifted layout
+        // Pages inserted above the start page shift the layout, so re-anchor.
         scrollToPage(START_PAGE, false);
 
-        // 4. Now allow auto-fullscreen on scroll
         lastScrollY = window.scrollY;
         scrollDelta = 0;
         initDone = true;
-
       } catch (err) {
-        document.getElementById('loading').innerHTML =
-          '<span style="color:#F87171">Error loading PDF: ' + err.message + '</span>';
+        showFatal('Could not display this PDF', err && err.message);
       }
     }
 
     async function renderPage(pageNum) {
+      // Marked before awaiting so concurrent callers don't render it twice.
       if (renderedPages.has(pageNum)) return;
       renderedPages.add(pageNum);
+      try {
+        await renderPageInner(pageNum);
+      } catch (err) {
+        // Un-mark it: leaving it in the set would strand the page blank forever,
+        // since every later attempt would early-return on the has() check.
+        renderedPages.delete(pageNum);
+        console.warn('Failed to render page ' + pageNum, err);
+      }
+    }
 
+    async function renderPageInner(pageNum) {
       const page = await pdfDoc.getPage(pageNum);
       const screenWidth = window.innerWidth - 12;
 
-      // Get the base viewport at scale 1 to know the PDF page's natural size
       const baseViewport = page.getViewport({ scale: 1 });
 
-      // Calculate the CSS display scale to fit page width to screen
       const cssScale = screenWidth / baseViewport.width;
 
-      // Render scale = CSS display size × devicePixelRatio for pixel-perfect output
       const renderScale = cssScale * DPR;
       const renderViewport = page.getViewport({ scale: renderScale });
 
-      // For text positioning math, use a scale relative to renderViewport
       const SCALE = renderScale;
       const displayScale = screenWidth / renderViewport.width;
 
-      // Check if a placeholder wrapper already exists (from page unloading)
+      // A placeholder wrapper survives page unloading, so reuse it if present.
       let wrapper = document.getElementById('page-' + pageNum);
       const isExisting = !!wrapper;
 
@@ -423,7 +513,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         wrapper.className = 'page-wrapper';
         wrapper.id = 'page-' + pageNum;
       } else {
-        // Clear placeholder contents so we can repopulate
         wrapper.innerHTML = '';
       }
 
@@ -433,7 +522,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       const canvas = document.createElement('canvas');
       canvas.width = renderViewport.width;
       canvas.height = renderViewport.height;
-      // Set CSS size explicitly so canvas pixels map 1:1 to physical screen pixels
+      // Explicit CSS size maps canvas pixels 1:1 onto physical screen pixels.
       canvas.style.width = screenWidth + 'px';
       canvas.style.height = (renderViewport.height * displayScale) + 'px';
       wrapper.appendChild(canvas);
@@ -442,7 +531,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       textDiv.className = 'text-layer';
       wrapper.appendChild(textDiv);
 
-      // Insert in correct page order (only if this is a brand new wrapper)
       if (!isExisting) {
         const container = document.getElementById('container');
         const existingPages = container.querySelectorAll('.page-wrapper');
@@ -459,7 +547,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       }
 
       const ctx = canvas.getContext('2d', { alpha: false });
-      // Fill white immediately so the canvas never flashes black while rendering
+      // Avoids a black flash before the page paints.
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.imageSmoothingEnabled = true;
@@ -469,7 +557,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         viewport: renderViewport,
       }).promise;
 
-      // ── Build text layer with proportional word positioning ──
       const textContent = await page.getTextContent();
       let fullPageText = '';
 
@@ -480,13 +567,11 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         const tx = pdfjsLib.Util.transform(renderViewport.transform, item.transform);
         const fontHeight = item.height * SCALE;
 
-        // Use canvas measurement for proportional character widths
         _mx.font = fontHeight + 'px sans-serif';
         const measuredTotal = _mx.measureText(item.str).width;
         const actualTotal = item.width * SCALE;
         const wScale = measuredTotal > 0 ? actualTotal / measuredTotal : 1;
 
-        // Extract words with regex to get correct string indices
         const wordRe = /\\S+/g;
         let m;
         while ((m = wordRe.exec(item.str)) !== null) {
@@ -572,7 +657,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       window.scrollTo({ top: Math.max(0, top), behavior: smooth !== false ? 'smooth' : 'instant' });
     }
 
-    /* ─── Go-to-page ─── */
     function openGoToPage() {
       document.getElementById('gotoSub').textContent =
         'Enter page number (1 \\u2013 ' + totalPages + ')';
@@ -595,7 +679,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       if (isNaN(page)) page = currentPage;
       page = Math.max(1, Math.min(page, totalPages));
 
-      for (let i = Math.max(1, page - 2); i <= Math.min(page + 3, totalPages); i++) {
+      for (let i = Math.max(1, page - 2); i <= Math.min(page + 2, totalPages); i++) {
         await renderPage(i);
       }
 
@@ -606,50 +690,45 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       document.getElementById('gotoOverlay').classList.remove('show');
     }
 
-    /* ─── Go back to home ─── */
     function goBack() {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'goBack' }));
     }
 
-    /* ─── Fullscreen toggle ─── */
     function toggleFullscreen() {
       isFullscreen = !isFullscreen;
-      autoFullscreen = false; // manual toggle resets auto state
+      autoFullscreen = false;
       applyFullscreenState();
     }
 
     function setAutoFullscreen(enterFullscreen) {
-      if (!initDone) return; // don't auto-toggle during initial load
-      if (searchOpen) return; // don't auto-toggle during search
-      if (enterFullscreen === isFullscreen) return; // already in desired state
+      if (!initDone || searchOpen) return;
+      if (enterFullscreen === isFullscreen) return;
       isFullscreen = enterFullscreen;
       autoFullscreen = enterFullscreen;
-      // Only toggle WebView toolbar — don't notify RN (avoids re-renders & lag)
+      // Deliberately does not notify RN: the re-render costs more than it gains.
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
     }
 
     function applyFullscreenState() {
       document.getElementById('toolbar').classList.toggle('hidden', isFullscreen);
-      // Only manual toggles notify RN (for StatusBar / BackHandler)
+      // Only manual toggles notify RN, for the StatusBar and back handler.
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'fullscreenChanged',
         isFullscreen: isFullscreen
       }));
     }
 
-    /* ─── Search ─── */
     function openSearch() {
       searchOpen = true;
       document.getElementById('searchBar').classList.add('show');
       document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('container').style.marginTop = '78px';
+      document.getElementById('container').style.marginTop = '${78 + sbH}px';
       setTimeout(() => document.getElementById('searchInput').focus(), 150);
     }
 
     function closeSearch() {
       searchOpen = false;
       document.getElementById('searchBar').classList.remove('show');
-      // Only show toolbar if NOT in fullscreen mode
       if (!isFullscreen) {
         document.getElementById('toolbar').classList.remove('hidden');
       }
@@ -686,20 +765,19 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
       document.getElementById('searchInfo').textContent = 'Searching...';
 
-      // Phase 1: Instantly search already-cached pages
+      // Cached pages first, so results appear without waiting on extraction.
       for (let p = 1; p <= totalPages; p++) {
         if (pageTextCache[p] && pageTextCache[p].toLowerCase().indexOf(query) !== -1) {
           searchMatches.push(p);
         }
       }
 
-      // Show immediate results if any
       if (searchMatches.length > 0) {
         currentMatchIdx = 0;
         await navigateToMatch();
       }
 
-      // Phase 2: Extract uncached pages in small batches (non-blocking)
+      // Then extract the rest in small batches, yielding between them.
       const uncached = [];
       for (let p = 1; p <= totalPages; p++) {
         if (!pageTextCache[p]) uncached.push(p);
@@ -707,7 +785,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
       const BATCH = 5;
       for (let b = 0; b < uncached.length; b += BATCH) {
-        // Check if query changed while we were working
         const currentQuery = document.getElementById('searchInput').value.trim().toLowerCase();
         if (currentQuery !== query) return;
 
@@ -721,10 +798,8 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
           }
         }));
 
-        // Sort matches by page order
         searchMatches.sort((a, b) => a - b);
 
-        // Update count live
         if (searchMatches.length > 0 && currentMatchIdx === -1) {
           currentMatchIdx = 0;
           await navigateToMatch();
@@ -733,7 +808,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
             (currentMatchIdx + 1) + ' of ' + searchMatches.length;
         }
 
-        // Yield to keep UI responsive
         await new Promise(r => setTimeout(r, 0));
       }
 
@@ -751,7 +825,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       document.getElementById('searchInfo').textContent =
         (currentMatchIdx + 1) + ' of ' + searchMatches.length;
 
-      // Render the target page and neighbors
       for (let i = Math.max(1, page - 1); i <= Math.min(page + 2, totalPages); i++) {
         await renderPage(i);
       }
@@ -761,7 +834,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       scrollToPage(page);
       sendPageChange();
 
-      // Highlight matching words on the active match page
       clearSearchHighlights();
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const wrapper = document.getElementById('page-' + page);
@@ -774,7 +846,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         });
       }
 
-      // Light highlight on other visible match pages
       searchMatches.forEach((mp, idx) => {
         if (idx === currentMatchIdx) return;
         const w = document.getElementById('page-' + mp);
@@ -803,13 +874,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
       await navigateToMatch();
     }
 
-    // ─── Scroll detection with bidirectional lazy page rendering ───
-    const MAX_RENDERED_PAGES = 10; // Keep at most 10 pages in DOM to save memory
+    // At most this many pages stay in the DOM, centred on the current one.
+    const MAX_RENDERED_PAGES = 6;
+    const KEEP_RADIUS = 2;
 
     function unloadDistantPages() {
       if (renderedPages.size <= MAX_RENDERED_PAGES) return;
       const pagesToKeep = new Set();
-      for (let i = Math.max(1, currentPage - 4); i <= Math.min(currentPage + 4, totalPages); i++) {
+      for (let i = Math.max(1, currentPage - KEEP_RADIUS); i <= Math.min(currentPage + KEEP_RADIUS, totalPages); i++) {
         pagesToKeep.add(i);
       }
 
@@ -818,7 +890,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         if (!pagesToKeep.has(p)) toRemove.push(p);
       });
 
-      // Sort by distance from current page, remove furthest first
       toRemove.sort((a, b) => Math.abs(b - currentPage) - Math.abs(a - currentPage));
       const removeCount = renderedPages.size - MAX_RENDERED_PAGES;
 
@@ -826,7 +897,14 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         const pageNum = toRemove[i];
         const wrapper = document.getElementById('page-' + pageNum);
         if (wrapper) {
-          // Keep the wrapper div (preserves scroll position) but clear its heavy children
+          // Zeroing first is what frees the backing store. Clearing innerHTML
+          // only drops the node; the pixels linger until GC, which under memory
+          // pressure is too late.
+          wrapper.querySelectorAll('canvas').forEach(c => {
+            c.width = 0;
+            c.height = 0;
+          });
+          // The wrapper stays so scroll position is preserved.
           const w = wrapper.style.width;
           const h = wrapper.style.height;
           wrapper.innerHTML = '';
@@ -838,12 +916,10 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
     }
 
     let scrollTimeout;
-    let scrollRenderAbort = 0; // incremented to cancel stale scroll renders
+    let scrollRenderAbort = 0;
     window.addEventListener('scroll', () => {
-      /* ─── Auto-fullscreen on scroll direction ─── */
       const sy = window.scrollY;
       const delta = sy - lastScrollY;
-      // Accumulate in same direction, reset on direction change
       if ((delta > 0 && scrollDelta > 0) || (delta < 0 && scrollDelta < 0)) {
         scrollDelta += delta;
       } else {
@@ -859,7 +935,6 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
         scrollDelta = 0;
       }
 
-      /* ─── Page tracking & rendering ─── */
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(async () => {
         const pages = document.querySelectorAll('.page-wrapper');
@@ -868,7 +943,7 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
 
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
-          const dist = Math.abs(rect.top - 78);
+          const dist = Math.abs(rect.top - ${78 + sbH});
           if (dist < closestDist) {
             closestDist = dist;
             closest = parseInt(page.id.split('-')[1]);
@@ -880,17 +955,16 @@ export function getPdfViewerHtml(base64Data: string, startPage: number = 1, pdfN
           updatePageInfo();
           sendPageChange();
 
-          // Cancel any previous scroll-render batch
           const thisRender = ++scrollRenderAbort;
 
-          // Render pages in BOTH directions, yielding between each
-          for (let i = Math.max(1, currentPage - 3); i <= Math.min(currentPage + 3, totalPages); i++) {
-            if (scrollRenderAbort !== thisRender) break; // user scrolled again, abandon
+          // Matches KEEP_RADIUS: rendering wider than the keep window would
+          // render pages that unloadDistantPages immediately throws away.
+          for (let i = Math.max(1, currentPage - KEEP_RADIUS); i <= Math.min(currentPage + KEEP_RADIUS, totalPages); i++) {
+            if (scrollRenderAbort !== thisRender) break;
             await renderPage(i);
-            await new Promise(r => setTimeout(r, 0)); // yield to browser
+            await new Promise(r => setTimeout(r, 0));
           }
 
-          // Free memory from distant pages
           unloadDistantPages();
         }
       }, 100);

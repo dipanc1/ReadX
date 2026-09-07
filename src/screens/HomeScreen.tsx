@@ -16,7 +16,29 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme } from '../context/ThemeContext';
 import { getSavedPdfs, savePdf, deletePdf } from '../services/storageService';
+import { buildStoredFileName, stripPdfExtension } from '../utils/filename';
 import { PdfDocument } from '../types';
+
+/**
+ * Above this we warn before opening. We never hard-block: whether a given file
+ * actually opens depends on the device, and the viewer now fails gracefully.
+ */
+const LARGE_FILE_WARNING_BYTES = 150 * 1024 * 1024;
+
+function confirmLargeFile(sizeBytes: number): Promise<boolean> {
+  const mb = Math.round(sizeBytes / (1024 * 1024));
+  return new Promise((resolve) => {
+    Alert.alert(
+      'Large file',
+      `This PDF is about ${mb} MB. It may take a while to open, and on some devices it may not open at all.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Open anyway', onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) }
+    );
+  });
+}
 
 type RootStackParamList = {
   HomeTabs: undefined;
@@ -52,32 +74,42 @@ export const HomeScreen: React.FC = () => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
 
-        // Copy PDF to permanent documents directory so it survives cache eviction
+        if (typeof file.size === 'number' && file.size > LARGE_FILE_WARNING_BYTES) {
+          const proceed = await confirmLargeFile(file.size);
+          if (!proceed) return;
+        }
+
+        // Under documentDirectory, not cache, so the copy is not evicted.
         const pdfDir = FileSystem.documentDirectory + 'pdfs/';
         const dirInfo = await FileSystem.getInfoAsync(pdfDir);
         if (!dirInfo.exists) {
           await FileSystem.makeDirectoryAsync(pdfDir, { intermediates: true });
         }
 
-        const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const permanentUri = pdfDir + safeFileName;
+        const existing = pdfs.find((p) => p.name === file.name);
 
-        // Check if this file already exists (re-picking same PDF)
-        const existing = pdfs.find(
-          (p) => p.name === file.name
-        );
+        // Keyed on the entry id: sanitising the display name alone maps
+        // "my file.pdf" and "my-file.pdf" onto one path, so two documents would
+        // overwrite each other and deleting one would take the other's file too.
+        const id = existing?.id ?? Date.now().toString();
+        const permanentUri = pdfDir + buildStoredFileName(id, file.name);
+
+        // copyAsync does not reliably overwrite an existing destination.
+        await FileSystem.deleteAsync(permanentUri, { idempotent: true });
+        await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
 
         if (existing) {
-          // Update existing entry — copy fresh file and navigate
-          await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
+          // Left behind by the previous naming scheme.
+          if (existing.uri && existing.uri !== permanentUri) {
+            await FileSystem.deleteAsync(existing.uri, { idempotent: true });
+          }
           const updatedPdf = { ...existing, uri: permanentUri, lastReadAt: Date.now() };
           await savePdf(updatedPdf);
           await loadPdfs();
           navigation.navigate('PdfViewer', { pdf: updatedPdf });
         } else {
-          await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
           const pdf: PdfDocument = {
-            id: Date.now().toString(),
+            id,
             name: file.name,
             uri: permanentUri,
             addedAt: Date.now(),
@@ -93,6 +125,20 @@ export const HomeScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openPdf = async (pdf: PdfDocument) => {
+    // The file can vanish between sessions (uninstall/reinstall, storage
+    // cleanup), which previously surfaced as a raw error inside the viewer.
+    const info = await FileSystem.getInfoAsync(pdf.uri);
+    if (!info.exists) {
+      Alert.alert(
+        'File missing',
+        `"${stripPdfExtension(pdf.name)}" is no longer on your device. Open it again to restore it.`
+      );
+      return;
+    }
+    navigation.navigate('PdfViewer', { pdf });
   };
 
   const handleDelete = (pdf: PdfDocument) => {
@@ -137,19 +183,17 @@ export const HomeScreen: React.FC = () => {
           styles.pdfCard,
           { backgroundColor: colors.card },
         ]}
-        onPress={() => navigation.navigate('PdfViewer', { pdf: item })}
+        onPress={() => openPdf(item)}
         onLongPress={() => handleDelete(item)}
         activeOpacity={0.65}
       >
-        {/* Left icon */}
         <View style={[styles.pdfIconWrap, { backgroundColor: 'rgba(129,140,248,0.1)' }]}>
           <Ionicons name="document-text" size={24} color={colors.primary} />
         </View>
 
-        {/* Info */}
         <View style={styles.pdfInfo}>
           <Text style={[styles.pdfName, { color: colors.text }]} numberOfLines={1}>
-            {item.name.replace('.pdf', '')}
+            {stripPdfExtension(item.name)}
           </Text>
           <View style={styles.pdfMetaRow}>
             <Text style={[styles.pdfMeta, { color: colors.textSecondary }]}>
@@ -177,7 +221,6 @@ export const HomeScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Arrow */}
         <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: 8 }} />
       </TouchableOpacity>
     );
@@ -190,7 +233,6 @@ export const HomeScreen: React.FC = () => {
         backgroundColor={colors.background}
       />
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoRow}>
@@ -204,7 +246,6 @@ export const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Upload area */}
       <TouchableOpacity
         style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
         onPress={pickPdf}
@@ -225,7 +266,6 @@ export const HomeScreen: React.FC = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Content */}
       {pdfs.length > 0 ? (
         <>
           <View style={styles.sectionRow}>
@@ -262,7 +302,6 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  /* Header */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -286,7 +325,6 @@ const styles = StyleSheet.create({
   },
   brandName: { fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
 
-  /* Upload */
   uploadBtn: {
     marginHorizontal: 20,
     marginTop: 20,
@@ -317,7 +355,6 @@ const styles = StyleSheet.create({
   uploadTitle: { fontSize: 16, fontWeight: '700', color: '#FFF', letterSpacing: 0.2 },
   uploadSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
 
-  /* Section header */
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -337,7 +374,6 @@ const styles = StyleSheet.create({
   },
   countNum: { fontSize: 12, fontWeight: '800' },
 
-  /* PDF list */
   list: { paddingHorizontal: 20, paddingBottom: 100 },
   pdfCard: {
     flexDirection: 'row',
@@ -368,7 +404,6 @@ const styles = StyleSheet.create({
   progressTrack: { height: 3, borderRadius: 2, marginTop: 8 },
   progressFill: { height: 3, borderRadius: 2 },
 
-  /* Empty state */
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 44 },
   emptyIcon: {
     width: 88,

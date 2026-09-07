@@ -104,12 +104,10 @@ export const WordModal: React.FC<WordModalProps> = ({
             { backgroundColor: colors.surface },
           ]}
         >
-          {/* Handle */}
           <View style={styles.handleRow}>
             <View style={[styles.handle, { backgroundColor: 'rgba(255,255,255,0.12)' }]} />
           </View>
 
-          {/* Header */}
           <View style={[styles.header, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
             <View style={styles.headerLeft}>
               <View style={styles.wordRow}>
@@ -134,7 +132,6 @@ export const WordModal: React.FC<WordModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Body */}
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
             {loading && (
               <View style={styles.centered}>
@@ -232,7 +229,6 @@ export const WordModal: React.FC<WordModalProps> = ({
             )}
           </ScrollView>
 
-          {/* Footer actions */}
           {entry && !loading && (
             <View style={[styles.footer, { borderTopColor: 'rgba(255,255,255,0.06)' }]}>
               <TouchableOpacity

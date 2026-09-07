@@ -127,7 +127,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     <Animated.View style={[styles.container, { opacity: fadeOut }]}>
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
-      {/* Radial glow */}
       <Animated.View
         style={[
           styles.glow,
@@ -138,7 +137,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         ]}
       />
 
-      {/* Logo */}
       <Animated.View
         style={[
           styles.logoOuter,
@@ -156,7 +154,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </View>
       </Animated.View>
 
-      {/* Brand name */}
       <Animated.View
         style={{
           opacity: textOpacity,
@@ -169,7 +166,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </Text>
       </Animated.View>
 
-      {/* Tagline */}
       <Animated.View
         style={{
           opacity: tagOpacity,
@@ -180,7 +176,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <Text style={styles.tagline}>PDFs, But Better</Text>
       </Animated.View>
 
-      {/* Loading dots */}
       <Animated.View style={[styles.dotsRow, { opacity: dotsOpacity }]}>
         <LoadingDots />
       </Animated.View>

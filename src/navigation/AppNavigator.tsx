@@ -10,7 +10,6 @@ import { PdfViewerScreen } from '../screens/PdfViewerScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
 import { PdfDocument } from '../types';
 
-// ─── Type Definitions ───────────────────────────────────────
 export type RootStackParamList = {
   HomeTabs: undefined;
   PdfViewer: { pdf: PdfDocument };
@@ -24,7 +23,6 @@ type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// ─── Bottom Tabs ────────────────────────────────────────────
 const HomeTabs: React.FC = () => {
   const { theme } = useTheme();
   const colors = theme.colors;
@@ -82,7 +80,6 @@ const HomeTabs: React.FC = () => {
   );
 };
 
-// ─── Root Stack ─────────────────────────────────────────────
 export const AppNavigator: React.FC = () => {
   const { theme } = useTheme();
   const colors = theme.colors;

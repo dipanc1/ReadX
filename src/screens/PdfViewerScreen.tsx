@@ -21,6 +21,9 @@ type RouteParams = {
   PdfViewer: { pdf: PdfDocument };
 };
 
+const OUT_OF_MEMORY_MESSAGE =
+  'This PDF needed more memory than the device could give it, so the viewer was closed.';
+
 export const PdfViewerScreen: React.FC = () => {
   const { theme } = useTheme();
   const route = useRoute<RouteProp<RouteParams, 'PdfViewer'>>();
@@ -30,14 +33,18 @@ export const PdfViewerScreen: React.FC = () => {
   const colors = theme.colors;
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ htmlUri: string; dirUri: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Word modal state
   const [selectedWord, setSelectedWord] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Latest page from the WebView, so a pending debounced save can be flushed
+  // if the screen unmounts before the timer fires.
+  const pendingProgress = useRef<{ page: number; totalPages: number } | null>(null);
+  const generatedHtmlUri = useRef<string | null>(null);
 
   useEffect(() => {
     // Defer PDF loading slightly to let the navigation animation finish
@@ -45,18 +52,32 @@ export const PdfViewerScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle Android hardware back button: exit fullscreen first
+  // Flush any debounced progress write and clean up the generated HTML file.
+  useEffect(() => {
+    return () => {
+      if (progressTimer.current) {
+        clearTimeout(progressTimer.current);
+        progressTimer.current = null;
+      }
+      const pending = pendingProgress.current;
+      if (pending) {
+        updatePdfProgress(pdf.id, pending.page, pending.totalPages).catch(() => {});
+      }
+      if (generatedHtmlUri.current) {
+        FileSystem.deleteAsync(generatedHtmlUri.current, { idempotent: true }).catch(() => {});
+      }
+    };
+  }, []);
+
+  // Android back button leaves fullscreen before it leaves the screen.
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (isFullscreen) {
-        // Tell WebView to exit fullscreen
-        webViewRef.current?.injectJavaScript(
-          `if (typeof toggleFullscreen === 'function') toggleFullscreen(); true;`
-        );
-        setIsFullscreen(false);
-        return true; // prevent default back navigation
-      }
-      return false; // let default back navigation happen
+      if (!isFullscreen) return false;
+      webViewRef.current?.injectJavaScript(
+        `if (typeof toggleFullscreen === 'function') toggleFullscreen(); true;`
+      );
+      setIsFullscreen(false);
+      return true;
     });
     return () => handler.remove();
   }, [isFullscreen]);
@@ -66,18 +87,51 @@ export const PdfViewerScreen: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Read PDF file as base64
-      const base64 = await FileSystem.readAsStringAsync(pdf.uri, {
-        encoding: 'base64',
-      });
+      const info = await FileSystem.getInfoAsync(pdf.uri);
+      if (!info.exists) {
+        setError('This file is no longer on your device. Open it again to restore it.');
+        return;
+      }
 
-      // Generate HTML with embedded PDF data, resuming from last page
-      const html = getPdfViewerHtml(base64, pdf.lastPage || 1, pdf.name, StatusBar.currentHeight || 0);
-      setHtmlContent(html);
+      // The bytes are deliberately not read here: the viewer HTML goes next to
+      // the PDF and PDF.js fetches the file itself over file://. Reading it to
+      // base64 and inlining it is what used to exhaust memory on big documents.
+      const lastSlash = pdf.uri.lastIndexOf('/');
+      const dirUri = pdf.uri.slice(0, lastSlash + 1);
+      // Already a URI segment, so usable as-is as a relative URL.
+      const pdfUrlSegment = pdf.uri.slice(lastSlash + 1);
+
+      const html = getPdfViewerHtml(
+        pdfUrlSegment,
+        pdf.lastPage || 1,
+        pdf.name,
+        StatusBar.currentHeight || 0
+      );
+
+      const viewerUri = `${dirUri}.viewer-${pdf.id}.html`;
+      await FileSystem.writeAsStringAsync(viewerUri, html);
+      generatedHtmlUri.current = viewerUri;
+      setViewer({ htmlUri: viewerUri, dirUri });
     } catch (err: any) {
       setError(err?.message || 'Failed to load PDF');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fallback for WebViews that refuse file-to-file access: hand the bytes over
+  // directly. Only viable for documents small enough to fit in memory, which is
+  // exactly the set that already worked before this change.
+  const loadViaBase64Fallback = async () => {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(pdf.uri, { encoding: 'base64' });
+      webViewRef.current?.injectJavaScript(
+        `window.__loadPdfFromBase64('${base64}'); true;`
+      );
+    } catch {
+      webViewRef.current?.injectJavaScript(
+        `window.__pdfLoadFailed('The file could not be read.'); true;`
+      );
     }
   };
 
@@ -92,15 +146,19 @@ export const PdfViewerScreen: React.FC = () => {
           setModalVisible(true);
         }
       } else if (message.type === 'pageChanged') {
-        // Debounce progress saving — only write to storage after 1s of no page changes
+        // Debounced so a fast scroll doesn't write on every page boundary.
+        pendingProgress.current = { page: message.page, totalPages: message.totalPages };
         if (progressTimer.current) clearTimeout(progressTimer.current);
         progressTimer.current = setTimeout(() => {
           updatePdfProgress(pdf.id, message.page, message.totalPages);
+          pendingProgress.current = null;
         }, 1000);
       } else if (message.type === 'fullscreenChanged') {
         setIsFullscreen(message.isFullscreen);
       } else if (message.type === 'goBack') {
         navigation.goBack();
+      } else if (message.type === 'urlLoadFailed') {
+        loadViaBase64Fallback();
       }
     } catch {
       // Invalid message, ignore
@@ -138,16 +196,31 @@ export const PdfViewerScreen: React.FC = () => {
         translucent={isFullscreen}
       />
 
-      {htmlContent && (
+      {viewer && (
         <WebView
           ref={webViewRef}
-          source={{ html: htmlContent }}
+          source={{ uri: viewer.htmlUri }}
           style={styles.webview}
           onMessage={handleMessage}
           javaScriptEnabled
           domStorageEnabled
           originWhitelist={['*']}
           allowFileAccess
+          // Gives the file:// page a scheme-based origin, so PDF.js's XHR for the
+          // PDF next to it is not rejected as a null-origin request. Deliberately
+          // not allowUniversalAccessFromFileURLs: file-to-file is all we need, and
+          // the universal grant would let the CDN script read the app's own files.
+          allowFileAccessFromFileURLs
+          // Without this iOS grants read access to the HTML file alone, so the
+          // sibling PDF stays outside the sandbox and the fetch fails.
+          allowingReadAccessToURL={viewer.dirUri}
+          // A large PDF can still exhaust the renderer. Handling these turns that
+          // into an error screen instead of taking the whole app down.
+          onRenderProcessGone={() => setError(OUT_OF_MEMORY_MESSAGE)}
+          onContentProcessDidTerminate={() => setError(OUT_OF_MEMORY_MESSAGE)}
+          onError={({ nativeEvent }) =>
+            setError(nativeEvent.description || 'Failed to display this PDF.')
+          }
           mixedContentMode="always"
           cacheEnabled={true}
           cacheMode="LOAD_DEFAULT"

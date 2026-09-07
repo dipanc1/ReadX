@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -25,6 +25,13 @@ export const InAppBrowser: React.FC<InAppBrowserProps> = ({ visible, url, onClos
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
 
+  // Without this the previous lookup's title and spinner state linger when the
+  // browser is reopened for a different word.
+  useEffect(() => {
+    setTitle('');
+    setLoading(true);
+  }, [url]);
+
   return (
     <Modal
       visible={visible}
@@ -35,7 +42,6 @@ export const InAppBrowser: React.FC<InAppBrowserProps> = ({ visible, url, onClos
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.surface} />
 
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.surface }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.6}>
             <Ionicons name="close" size={22} color={colors.text} />
@@ -49,7 +55,6 @@ export const InAppBrowser: React.FC<InAppBrowserProps> = ({ visible, url, onClos
           {loading && <ActivityIndicator size="small" color={colors.primary} style={styles.spinner} />}
         </View>
 
-        {/* WebView */}
         <WebView
           source={{ uri: url }}
           style={styles.webview}

@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { getBookmarks, removeBookmark } from '../services/storageService';
 import { InAppBrowser } from '../components/InAppBrowser';
+import { stripPdfExtension } from '../utils/filename';
 import { BookmarkedWord } from '../types';
 
 export const BookmarksScreen: React.FC = () => {
@@ -66,7 +67,6 @@ export const BookmarksScreen: React.FC = () => {
         activeOpacity={0.65}
       >
         <View style={styles.cardBody}>
-          {/* Word row */}
           <View style={styles.wordRow}>
             <View style={styles.wordLeft}>
               <Text style={[styles.word, { color: colors.text }]}>{item.word}</Text>
@@ -113,7 +113,7 @@ export const BookmarksScreen: React.FC = () => {
               <View style={styles.sourceRow}>
                 <Ionicons name="document-text-outline" size={12} color={colors.textSecondary} />
                 <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                  {item.pdfName.replace('.pdf', '')}
+                  {stripPdfExtension(item.pdfName)}
                 </Text>
               </View>
             ) : <View />}
@@ -134,7 +134,6 @@ export const BookmarksScreen: React.FC = () => {
         backgroundColor={colors.background}
       />
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconRow}>

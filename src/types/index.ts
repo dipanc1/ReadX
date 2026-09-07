@@ -1,15 +1,12 @@
-// ─── PDF Document ────────────────────────────────────────────
 export interface PdfDocument {
   id: string;
   name: string;
   uri: string;
-  addedAt: number; // timestamp
+  addedAt: number;
   lastReadAt?: number;
   lastPage?: number;
   totalPages?: number;
 }
-
-// ─── Dictionary API Response ─────────────────────────────────
 export interface DictionaryDefinition {
   definition: string;
   example?: string;
@@ -35,8 +32,6 @@ export interface DictionaryEntry {
   meanings: DictionaryMeaning[];
   sourceUrls?: string[];
 }
-
-// ─── Bookmarked Word ────────────────────────────────────────
 export interface BookmarkedWord {
   id: string;
   word: string;
@@ -45,8 +40,6 @@ export interface BookmarkedWord {
   savedAt: number;
   pdfName?: string;
 }
-
-// ─── Theme ──────────────────────────────────────────────────
 export interface AppTheme {
   mode: 'dark';
   colors: {
@@ -63,8 +56,6 @@ export interface AppTheme {
     modalOverlay: string;
   };
 }
-
-// ─── WebView Messages ───────────────────────────────────────
 export interface WebViewWordMessage {
   type: 'wordTapped';
   word: string;
@@ -85,4 +76,21 @@ export interface WebViewGoBackMessage {
   type: 'goBack';
 }
 
-export type WebViewMessage = WebViewWordMessage | WebViewPageMessage | WebViewFullscreenMessage | WebViewGoBackMessage;
+/** PDF.js could not read the PDF over file:// — RN should retry by sending bytes. */
+export interface WebViewUrlLoadFailedMessage {
+  type: 'urlLoadFailed';
+  message: string;
+}
+
+/** The CDN-hosted PDF.js library never loaded (typically no network). */
+export interface WebViewEngineUnavailableMessage {
+  type: 'engineUnavailable';
+}
+
+export type WebViewMessage =
+  | WebViewWordMessage
+  | WebViewPageMessage
+  | WebViewFullscreenMessage
+  | WebViewGoBackMessage
+  | WebViewUrlLoadFailedMessage
+  | WebViewEngineUnavailableMessage;
