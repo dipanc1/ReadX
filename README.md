@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Expo_SDK-54-blue?logo=expo&logoColor=white" alt="Expo SDK 54" />
-  <img src="https://img.shields.io/badge/React_Native-0.77-61DAFB?logo=react&logoColor=white" alt="React Native" />
+  <img src="https://img.shields.io/badge/Expo_SDK-57-blue?logo=expo&logoColor=white" alt="Expo SDK 57" />
+  <img src="https://img.shields.io/badge/React_Native-0.86-61DAFB?logo=react&logoColor=white" alt="React Native" />
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
   <img src="https://img.shields.io/badge/Version-1.0.0-purple" alt="Version 1.0.0" />
@@ -69,8 +69,8 @@ No sign-ups. No subscriptions. Just read and learn.
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | React Native 0.77 + Expo SDK 54 |
-| **Language** | TypeScript 5.3 |
+| **Framework** | React Native 0.86 + Expo SDK 57 |
+| **Language** | TypeScript 6.0 |
 | **Navigation** | React Navigation 7 (Bottom Tabs + Native Stack) |
 | **PDF Rendering** | PDF.js 3.11.174 via WebView |
 | **Dictionary** | [Free Dictionary API](https://dictionaryapi.dev/) |

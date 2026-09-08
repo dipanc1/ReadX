@@ -229,7 +229,7 @@ const LoadingDots: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',

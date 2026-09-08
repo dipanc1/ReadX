@@ -45,13 +45,13 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: ${72 + sbH}px;
+      height: 72px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 100;
-      padding: ${sbH}px 12px 0 12px;
+      padding: 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
@@ -101,14 +101,14 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
     /* ─── Search bar ─── */
     #searchBar {
       position: fixed;
-      top: -${78 + sbH}px; left: 0; right: 0;
-      height: ${72 + sbH}px;
+      top: -72px; left: 0; right: 0;
+      height: 72px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 101;
-      padding: ${sbH}px 12px 0 12px;
+      padding: 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: top 0.3s ease;
     }
@@ -157,7 +157,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
 
     /* ─── Container ─── */
     #container {
-      margin-top: ${78 + sbH}px;
+      margin-top: 78px;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
     }
@@ -652,7 +652,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
     function scrollToPage(num, smooth) {
       const el = document.getElementById('page-' + num);
       if (!el) return;
-      const toolbarH = ${78 + sbH};
+      const toolbarH = 78;
       const top = el.offsetTop - toolbarH;
       window.scrollTo({ top: Math.max(0, top), behavior: smooth !== false ? 'smooth' : 'instant' });
     }

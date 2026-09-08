@@ -14,6 +14,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Directory, File, Paths } from 'expo-file-system';
 import { useTheme } from '../context/ThemeContext';
 import { getSavedPdfs, savePdf, deletePdf } from '../services/storageService';
 import { buildStoredFileName, stripPdfExtension } from '../utils/filename';
@@ -68,11 +69,13 @@ export const HomeScreen: React.FC = () => {
       setLoading(true);
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
-        copyToCacheDirectory: true,
+        // Keep the provider URI so the modern File API can read it directly.
+        copyToCacheDirectory: false,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets.length > 0) {
         const file = result.assets[0];
+        const sourceFile = new File(file.uri);
 
         if (typeof file.size === 'number' && file.size > LARGE_FILE_WARNING_BYTES) {
           const proceed = await confirmLargeFile(file.size);
@@ -80,10 +83,12 @@ export const HomeScreen: React.FC = () => {
         }
 
         // Under documentDirectory, not cache, so the copy is not evicted.
-        const pdfDir = FileSystem.documentDirectory + 'pdfs/';
-        const dirInfo = await FileSystem.getInfoAsync(pdfDir);
-        if (!dirInfo.exists) {
-          await FileSystem.makeDirectoryAsync(pdfDir, { intermediates: true });
+        if (!FileSystem.documentDirectory) {
+          throw new Error('App storage is unavailable. Please restart the app and try again.');
+        }
+        const pdfDir = new Directory(Paths.document, 'pdfs');
+        if (!pdfDir.exists) {
+          pdfDir.create({ intermediates: true });
         }
 
         const existing = pdfs.find((p) => p.name === file.name);
@@ -92,11 +97,12 @@ export const HomeScreen: React.FC = () => {
         // "my file.pdf" and "my-file.pdf" onto one path, so two documents would
         // overwrite each other and deleting one would take the other's file too.
         const id = existing?.id ?? Date.now().toString();
-        const permanentUri = pdfDir + buildStoredFileName(id, file.name);
 
-        // copyAsync does not reliably overwrite an existing destination.
-        await FileSystem.deleteAsync(permanentUri, { idempotent: true });
-        await FileSystem.copyAsync({ from: file.uri, to: permanentUri });
+        // Use the modern file API because Android provider URIs can be unreadable
+        // through the legacy copyAsync implementation in Expo Go.
+        const destinationFile = new File(pdfDir, buildStoredFileName(id, file.name));
+        await sourceFile.copy(destinationFile, { overwrite: true });
+        const permanentUri = destinationFile.uri;
 
         if (existing) {
           // Left behind by the previous naming scheme.
@@ -121,7 +127,9 @@ export const HomeScreen: React.FC = () => {
         }
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to pick PDF file');
+      console.error('Unable to import PDF', err);
+      const message = err instanceof Error ? err.message : 'Please try selecting the file again.';
+      Alert.alert('Unable to open PDF', message);
     } finally {
       setLoading(false);
     }
