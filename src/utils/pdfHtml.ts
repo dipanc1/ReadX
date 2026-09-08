@@ -15,14 +15,13 @@ import { escapeHtml, stripPdfExtension } from './filename';
  *                      this HTML. Resolved as a relative URL against the page's
  *                      own file:// location.
  */
-export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, pdfName: string = '', statusBarHeight: number = 0): string {
+export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, pdfName: string = ''): string {
   const safeTitle = escapeHtml(stripPdfExtension(pdfName));
   // JSON.stringify produces the quotes too, and escapes anything that would
   // otherwise break out of the JS string literal.
   const pdfUrlLiteral = JSON.stringify(pdfUrlSegment);
   const safeStartPage =
     Number.isFinite(startPage) && startPage > 0 ? Math.floor(startPage) : 1;
-  const sbH = Math.round(statusBarHeight);
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -722,7 +721,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
       searchOpen = true;
       document.getElementById('searchBar').classList.add('show');
       document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('container').style.marginTop = '${78 + sbH}px';
+      document.getElementById('container').style.marginTop = '78px';
       setTimeout(() => document.getElementById('searchInput').focus(), 150);
     }
 
@@ -943,7 +942,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
 
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
-          const dist = Math.abs(rect.top - ${78 + sbH});
+          const dist = Math.abs(rect.top - 78);
           if (dist < closestDist) {
             closestDist = dist;
             closest = parseInt(page.id.split('-')[1]);
