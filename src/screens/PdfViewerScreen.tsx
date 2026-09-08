@@ -104,7 +104,8 @@ export const PdfViewerScreen: React.FC = () => {
       const html = getPdfViewerHtml(
         pdfUrlSegment,
         pdf.lastPage || 1,
-        pdf.name
+        pdf.name,
+        StatusBar.currentHeight || 0
       );
 
       const viewerUri = `${dirUri}.viewer-${pdf.id}.html`;

@@ -15,13 +15,14 @@ import { escapeHtml, stripPdfExtension } from './filename';
  *                      this HTML. Resolved as a relative URL against the page's
  *                      own file:// location.
  */
-export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, pdfName: string = ''): string {
+export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, pdfName: string = '', statusBarHeight: number = 0): string {
   const safeTitle = escapeHtml(stripPdfExtension(pdfName));
   // JSON.stringify produces the quotes too, and escapes anything that would
   // otherwise break out of the JS string literal.
   const pdfUrlLiteral = JSON.stringify(pdfUrlSegment);
   const safeStartPage =
     Number.isFinite(startPage) && startPage > 0 ? Math.floor(startPage) : 1;
+  const sbH = Math.round(statusBarHeight);
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -44,13 +45,13 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 72px;
+      height: ${56 + sbH}px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 100;
-      padding: 0 12px;
+      padding: ${sbH}px 12px 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: transform 0.3s ease;
     }
@@ -100,14 +101,14 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
     /* ─── Search bar ─── */
     #searchBar {
       position: fixed;
-      top: -72px; left: 0; right: 0;
-      height: 72px;
+      top: -${62 + sbH}px; left: 0; right: 0;
+      height: ${56 + sbH}px;
       background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
       display: flex;
       align-items: center;
       gap: 8px;
       z-index: 101;
-      padding: 0 12px;
+      padding: ${sbH}px 12px 0 12px;
       border-bottom: 1px solid rgba(99, 102, 241, 0.15);
       transition: top 0.3s ease;
     }
@@ -156,7 +157,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
 
     /* ─── Container ─── */
     #container {
-      margin-top: 78px;
+      margin-top: ${62 + sbH}px;
       display: flex; flex-direction: column; align-items: center;
       padding-bottom: 40px;
     }
@@ -721,7 +722,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
       searchOpen = true;
       document.getElementById('searchBar').classList.add('show');
       document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('container').style.marginTop = '78px';
+      document.getElementById('container').style.marginTop = '${62 + sbH}px';
       setTimeout(() => document.getElementById('searchInput').focus(), 150);
     }
 
@@ -942,7 +943,7 @@ export function getPdfViewerHtml(pdfUrlSegment: string, startPage: number = 1, p
 
         pages.forEach((page) => {
           const rect = page.getBoundingClientRect();
-          const dist = Math.abs(rect.top - 78);
+          const dist = Math.abs(rect.top - ${62 + sbH});
           if (dist < closestDist) {
             closestDist = dist;
             closest = parseInt(page.id.split('-')[1]);
