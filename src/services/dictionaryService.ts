@@ -81,6 +81,12 @@ async function lookupWiktionary(word: string): Promise<LookupResult> {
     return { status: 'not_found' };
   }
 
+  // "symbol"/"letter" entries (ISO codes etc.) are trivia — show real senses first
+  const MINOR_POS = new Set(['symbol', 'letter', 'character', 'punctuation mark']);
+  meanings.sort(
+    (a, b) => Number(MINOR_POS.has(a.partOfSpeech)) - Number(MINOR_POS.has(b.partOfSpeech))
+  );
+
   return {
     status: 'found',
     entry: { word, phonetics: [], meanings },
