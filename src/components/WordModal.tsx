@@ -39,6 +39,8 @@ export const WordModal: React.FC<WordModalProps> = ({
   const [browserUrl, setBrowserUrl] = useState('');
   const colors = theme.colors;
 
+  const cleanWord = word?.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
+
   useEffect(() => {
     if (visible && word) {
       setLoading(true);
@@ -47,10 +49,14 @@ export const WordModal: React.FC<WordModalProps> = ({
       setEntry(null);
       setBookmarked(false);
 
+      // Guards against a slow lookup for a previous word overwriting this one.
+      let cancelled = false;
+
       Promise.all([
         lookupWord(word),
-        isWordBookmarked(word),
+        isWordBookmarked(cleanWord),
       ]).then(([result, isSaved]) => {
+        if (cancelled) return;
         if (result.status === 'found') {
           setEntry(result.entry);
         } else if (result.status === 'network_error') {
@@ -61,6 +67,10 @@ export const WordModal: React.FC<WordModalProps> = ({
         setBookmarked(isSaved);
         setLoading(false);
       });
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [visible, word]);
 
@@ -85,8 +95,6 @@ export const WordModal: React.FC<WordModalProps> = ({
     setBrowserUrl(url);
     setBrowserVisible(true);
   };
-
-  const cleanWord = word?.replace(/[^a-zA-Z'-]/g, '').toLowerCase();
 
   return (
     <>
