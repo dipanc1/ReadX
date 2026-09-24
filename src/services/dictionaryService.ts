@@ -1,9 +1,8 @@
 import { DictionaryEntry, DictionaryMeaning } from '../types';
 
-const BASE_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 const WIKTIONARY_URL = 'https://en.wiktionary.org/api/rest_v1/page/definition';
 
-const FETCH_TIMEOUT_MS = 5000;
+const FETCH_TIMEOUT_MS = 3000;
 
 export type LookupResult =
   | { status: 'found'; entry: DictionaryEntry }
@@ -21,26 +20,10 @@ function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Re
   }).finally(() => clearTimeout(timer));
 }
 
-async function lookupPrimary(word: string): Promise<LookupResult> {
-  const response = await fetchWithTimeout(`${BASE_URL}/${encodeURIComponent(word)}`);
-
-  if (response.status === 404) {
-    return { status: 'not_found' };
-  }
-  if (!response.ok) {
-    // 5xx / rate limit — treat as a network problem so the fallback kicks in
-    return { status: 'network_error' };
-  }
-
-  const data: DictionaryEntry[] = await response.json();
-  if (Array.isArray(data) && data.length > 0) {
-    return { status: 'found', entry: data[0] };
-  }
-  return { status: 'not_found' };
-}
-
 function stripHtml(html: string): string {
   return html
+    // style blocks carry CSS text that would survive plain tag removal
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<[^>]*>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -48,6 +31,7 @@ function stripHtml(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -117,13 +101,9 @@ export async function lookupWord(word: string): Promise<LookupResult> {
 
   let result: LookupResult;
   try {
-    result = await lookupPrimary(cleaned);
+    result = await lookupWiktionary(cleaned);
   } catch {
-    result = { status: 'network_error' };
-  }
-
-  // Primary API is flaky — fall back to Wiktionary on failure
-  if (result.status === 'network_error') {
+    // One retry — transient DNS/socket hiccups are common on mobile
     try {
       result = await lookupWiktionary(cleaned);
     } catch {
