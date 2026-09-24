@@ -16,7 +16,12 @@ function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Re
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, {
     signal: controller.signal,
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      // Wikimedia's bot policy can 403 generic client UAs (RN sends "okhttp/...")
+      'User-Agent': 'ReadX-PDF-Reader/1.0 (dictionary lookup)',
+      'Api-User-Agent': 'ReadX-PDF-Reader/1.0 (dictionary lookup)',
+    },
   }).finally(() => clearTimeout(timer));
 }
 
@@ -52,6 +57,7 @@ async function lookupWiktionary(word: string): Promise<LookupResult> {
     return { status: 'not_found' };
   }
   if (!response.ok) {
+    console.warn(`[dictionary] wiktionary HTTP ${response.status} for "${word}"`);
     return { status: 'network_error' };
   }
 
@@ -93,6 +99,15 @@ async function lookupWiktionary(word: string): Promise<LookupResult> {
   };
 }
 
+async function tryLookup(word: string): Promise<LookupResult> {
+  try {
+    return await lookupWiktionary(word);
+  } catch (e: any) {
+    console.warn(`[dictionary] wiktionary failed for "${word}": ${e?.message || e}`);
+    return { status: 'network_error' };
+  }
+}
+
 export async function lookupWord(word: string): Promise<LookupResult> {
   const cleaned = word.replace(/[^a-zA-Z'-]/g, '').trim().toLowerCase();
 
@@ -105,16 +120,11 @@ export async function lookupWord(word: string): Promise<LookupResult> {
     return cached;
   }
 
-  let result: LookupResult;
-  try {
-    result = await lookupWiktionary(cleaned);
-  } catch {
-    // One retry — transient DNS/socket hiccups are common on mobile
-    try {
-      result = await lookupWiktionary(cleaned);
-    } catch {
-      result = { status: 'network_error' };
-    }
+  let result = await tryLookup(cleaned);
+
+  // One retry — transient DNS/socket hiccups are common on mobile
+  if (result.status === 'network_error') {
+    result = await tryLookup(cleaned);
   }
 
   // Only cache definitive answers, not transient failures
